@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-facilita}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-facilita_pass}
+      POSTGRES_DB: ${DB_NAME:-facilitaestudos}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-facilita} -d ${DB_NAME:-facilitaestudos}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    restart: always
+    environment:
+      - PORT=3001
+      - DATABASE_URL=postgresql://${DB_USER:-facilita}:${DB_PASSWORD:-facilita_pass}@db:5432/${DB_NAME:-facilitaestudos}?schema=public
+      - JWT_SECRET=${JWT_SECRET:-facilita_secret_key_2026}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "npx prisma db push && 
+             npm run db:seed || true && 
+             npm run start"
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
