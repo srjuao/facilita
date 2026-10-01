@@ -20,6 +20,8 @@ services:
     build:
       context: ./backend
     restart: always
+    ports:
+      - "3001:3001"
     environment:
       - PORT=3001
       - DATABASE_URL=postgresql://${DB_USER:-facilita}:${DB_PASSWORD:-facilita_pass}@db:5432/${DB_NAME:-facilitaestudos}?schema=public
