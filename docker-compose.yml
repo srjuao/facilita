@@ -5,11 +5,11 @@ services:
     environment:
       POSTGRES_USER: ${DB_USER:?DB_USER must be set}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
-      POSTGRES_DB: ${DB_NAME:?DB_NAME must be set}
+      POSTGRES_DB: ${DB_NAME:-facilitaestudos}
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:?DB_USER must be set} -d ${DB_NAME:?DB_NAME must be set}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:?DB_USER must be set} -d ${DB_NAME:-facilitaestudos}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -28,7 +28,7 @@ services:
     restart: unless-stopped
     environment:
       PORT: 3001
-      DATABASE_URL: postgresql://${DB_USER:?DB_USER must be set}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:?DB_NAME must be set}?schema=public
+      DATABASE_URL: postgresql://${DB_USER:?DB_USER must be set}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:-facilitaestudos}?schema=public
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://app.facilitaestudos.com.br}
       NODE_ENV: production
