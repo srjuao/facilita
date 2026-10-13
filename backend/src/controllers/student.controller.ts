@@ -1,14 +1,25 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { AuthRequest, canAccessCourse } from '../middleware/auth';
 
 const prisma = new PrismaClient();
 
-export const getStudents = async (req: Request, res: Response) => {
+export const getStudents = async (req: AuthRequest, res: Response) => {
   try {
     const { courseId, risco, sub, search } = req.query;
 
     const where: any = {};
-    if (courseId) where.courseId = String(courseId);
+    const requestedCourseId = courseId ? String(courseId) : undefined;
+    if (req.user?.role === 'aluno') {
+      if (!req.user.studentId) return res.status(403).json({ error: 'Perfil de aluno inválido.' });
+      where.id = req.user.studentId;
+    } else if (req.user?.role !== 'superadmin') {
+      if (!req.user?.courseId) return res.status(403).json({ error: 'Curso não associado ao usuário.' });
+      if (requestedCourseId && !canAccessCourse(req.user, requestedCourseId)) return res.status(403).json({ error: 'Acesso negado a este curso.' });
+      where.courseId = req.user.courseId;
+    } else if (requestedCourseId) {
+      where.courseId = requestedCourseId;
+    }
     if (risco) where.risco = String(risco);
     if (sub) where.sub = String(sub);
     if (search) where.nome = { contains: String(search) };
@@ -27,7 +38,7 @@ export const getStudents = async (req: Request, res: Response) => {
   }
 };
 
-export const getStudentById = async (req: Request, res: Response) => {
+export const getStudentById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const student = await prisma.student.findUnique({
@@ -36,6 +47,8 @@ export const getStudentById = async (req: Request, res: Response) => {
     });
 
     if (!student) return res.status(404).json({ error: 'Estudante não encontrado' });
+    if (req.user?.role === 'aluno' && req.user.studentId !== student.id) return res.status(403).json({ error: 'Acesso negado a este estudante.' });
+    if (req.user?.role !== 'superadmin' && !canAccessCourse(req.user, student.courseId)) return res.status(403).json({ error: 'Acesso negado a este curso.' });
 
     return res.json({
       ...student,

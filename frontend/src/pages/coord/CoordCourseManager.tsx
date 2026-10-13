@@ -3,7 +3,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { useCourse } from '../../context/CourseContext';
 import { TopBar } from '../../components/TopBar';
 import { BookOpen, Video, FileText, Plus, Edit, Trash2, CheckCircle2, ShieldAlert, Award, Sliders, Upload, FileVideo, Check, Bell } from 'lucide-react';
-import axios from 'axios';
+import api from '../../api/client';
 
 export const CoordCourseManager: React.FC = () => {
   const { user } = useAuth();
@@ -53,7 +53,7 @@ export const CoordCourseManager: React.FC = () => {
     formData.append('video', file);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/upload/video', formData, {
+      const response = await api.post('/upload/video', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
@@ -81,7 +81,7 @@ export const CoordCourseManager: React.FC = () => {
       titulo: newLessonTitle,
       prof: newLessonProf,
       duracao: newLessonDuration,
-      videoUrl: newLessonVideoUrl || 'http://localhost:3001/uploads/videos/aula1_semiologia.mp4',
+      videoUrl: newLessonVideoUrl || '/uploads/videos/aula1_semiologia.mp4',
       desc: newLessonDesc || 'Aula cadastrada pelo administrador da faculdade.'
     };
 
@@ -436,7 +436,7 @@ export const CoordCourseManager: React.FC = () => {
                   <label>URL Direta do Vídeo (opcional se fez upload)</label>
                   <input 
                     type="text" 
-                    placeholder="http://localhost:3001/uploads/videos/seu-video.mp4"
+                    placeholder="/uploads/videos/seu-video.mp4"
                     value={newLessonVideoUrl}
                     onChange={(e) => setNewLessonVideoUrl(e.target.value)}
                   />

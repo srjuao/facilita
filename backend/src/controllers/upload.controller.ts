@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { AuthRequest } from '../middleware/auth';
 
 // Diretorio de uploads
 const uploadDir = path.join(__dirname, '../../uploads/videos');
@@ -23,9 +24,11 @@ const storage = multer.diskStorage({
 
 export const upload = multer({
   storage,
-  limits: { fileSize: 500 * 1024 * 1024 }, // 500MB
+  limits: { fileSize: 100 * 1024 * 1024, files: 1 },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype.startsWith('video/') || file.mimetype.startsWith('application/octet-stream') || file.originalname.match(/\.(mp4|webm|mkv|mov|avi)$/i)) {
+    const allowedMimeTypes = new Set(['video/mp4', 'video/webm', 'video/quicktime']);
+    const allowedExtensions = /\.(mp4|webm|mov)$/i;
+    if (allowedMimeTypes.has(file.mimetype) && allowedExtensions.test(file.originalname)) {
       cb(null, true);
     } else {
       cb(new Error('Formato de arquivo inválido. Apenas vídeos são permitidos.'));
@@ -33,12 +36,13 @@ export const upload = multer({
   }
 });
 
-export const handleVideoUpload = (req: Request, res: Response) => {
+export const handleVideoUpload = (req: AuthRequest, res: Response) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Nenhum arquivo de vídeo foi enviado.' });
   }
 
-  const videoUrl = `http://localhost:3001/uploads/videos/${req.file.filename}`;
+  // A relative URL follows the public origin/proxy and never leaks an internal host.
+  const videoUrl = `/uploads/videos/${req.file.filename}`;
   return res.json({
     message: 'Upload de vídeo concluído com sucesso!',
     videoUrl,

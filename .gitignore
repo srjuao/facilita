@@ -1,0 +1,38 @@
+# Secrets: keep local configuration out of version control.
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Dependencies and generated application output.
+**/node_modules/
+**/dist/
+**/build/
+**/.vite/
+*.tsbuildinfo
+
+# Local databases and ORM artifacts that can contain personal data.
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/prisma/*.db-*
+
+# Runtime uploads and temporary files. Store production media outside Git.
+**/uploads/
+**/tmp/
+**/logs/
+*.log
+
+# Credentials and TLS material.
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+
+# Editor and operating-system metadata.
+.DS_Store
+.idea/
+.vscode/

@@ -1,47 +1,90 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
-    restart: always
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER:-facilita}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-REMOVED_DATABASE_PASSWORD}
-      POSTGRES_DB: ${DB_NAME:-facilitaestudos}
+      POSTGRES_USER: ${DB_USER:?DB_USER must be set}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
+      POSTGRES_DB: ${DB_NAME:?DB_NAME must be set}
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-facilita} -d ${DB_NAME:-facilitaestudos}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:?DB_USER must be set} -d ${DB_NAME:?DB_NAME must be set}"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
 
   backend:
     build:
       context: ./backend
-    restart: always
-    ports:
-      - "3001:3001"
+    restart: unless-stopped
     environment:
-      - PORT=3001
-      - DATABASE_URL=postgresql://${DB_USER:-facilita}:${DB_PASSWORD:-REMOVED_DATABASE_PASSWORD}@db:5432/${DB_NAME:-facilitaestudos}?schema=public
-      - JWT_SECRET=${JWT_SECRET:-REMOVED_JWT_SECRET}
+      PORT: 3001
+      DATABASE_URL: postgresql://${DB_USER:?DB_USER must be set}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:?DB_NAME must be set}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN must be set}
+      NODE_ENV: production
     depends_on:
       db:
         condition: service_healthy
-    command: >
-      sh -c "npx prisma db push && 
-             npm run db:seed || true && 
-             npm run start"
+    # Apply an approved, versioned Prisma migration during the deployment runbook
+    # before starting this stack. Do not mutate the schema or seed data at boot.
+    volumes:
+      - uploads_data:/app/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3001/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 150
+    mem_limit: 512m
+    cpus: 1.0
 
   frontend:
     build:
       context: ./frontend
-    restart: always
+    restart: unless-stopped
     ports:
-      - "8090:80"
+      # The reverse proxy on the VPS is the only public entry point.
+      # The external nginx runs in another Docker network and reaches this
+      # listener via the host bridge; it is not exposed on public interfaces.
+      - "172.17.0.1:8090:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    mem_limit: 256m
+    cpus: 0.5
 
 volumes:
   db_data:
+  uploads_data:

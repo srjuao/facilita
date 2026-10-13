@@ -84,7 +84,7 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({ lessonId = 'les_1', 
             desc: 'Nesta aula abordaremos os conceitos fundamentais de anamnese, posicionamento do paciente, inspeção geral e sinais vitais primários.',
             duracao: '45 min',
             prof: 'Prof. Dr. Sérgio Amaral',
-            videoUrl: 'http://localhost:3001/uploads/videos/aula1_semiologia.mp4',
+            videoUrl: '/uploads/videos/aula1_semiologia.mp4',
             module: {
               nome: defaultMod ? defaultMod.nome : 'Semiologia Geral',
               lessons: defaultMod ? defaultMod.lessons : []
@@ -271,7 +271,7 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({ lessonId = 'les_1', 
                 />
               ) : (
                 <iframe
-                  src={lesson.videoUrl || 'http://localhost:3001/uploads/videos/aula1_semiologia.mp4'}
+                  src={lesson.videoUrl || '/uploads/videos/aula1_semiologia.mp4'}
                   title={lesson.titulo}
                   style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

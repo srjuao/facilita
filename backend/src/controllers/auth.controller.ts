@@ -9,8 +9,8 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ error: 'E-mail é obrigatório.' });
+    if (!email || typeof password !== 'string' || password.length === 0) {
+      return res.status(400).json({ error: 'E-mail e senha são obrigatórios.' });
     }
 
     const user = await prisma.user.findUnique({
@@ -22,11 +22,9 @@ export const login = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Conta não encontrada. Use um dos e-mails de demonstração.' });
     }
 
-    if (password) {
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch && password !== 'REMOVED_DEMO_PASSWORD') {
-        return res.status(401).json({ error: 'Senha incorreta.' });
-      }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'E-mail ou senha incorretos.' });
     }
 
     const token = generateToken({
@@ -72,7 +70,8 @@ export const getMe = async (req: AuthRequest, res: Response) => {
 
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
 
-    return res.json(user);
+    const { password: _password, ...safeUser } = user;
+    return res.json(safeUser);
   } catch (error) {
     return res.status(500).json({ error: 'Erro interno no servidor' });
   }
