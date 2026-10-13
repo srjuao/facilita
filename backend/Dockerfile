@@ -2,6 +2,10 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
+# Prisma detects the installed OpenSSL version when it generates its native
+# engine. Alpine's Node image does not include it by default.
+RUN apk add --no-cache openssl
+
 COPY package*.json ./
 RUN npm ci
 
@@ -14,6 +18,9 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 ENV NODE_ENV=production
+
+# Keep the matching runtime library in the final image as well.
+RUN apk add --no-cache openssl
 
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
