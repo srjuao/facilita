@@ -40,6 +40,10 @@ services:
     build:
       context: ./backend
     restart: unless-stopped
+    ports:
+      # Mailu owns the public ports and reaches the API through the Docker
+      # host gateway. This binding is intentionally not public.
+      - "172.17.0.1:3001:3001"
     environment:
       PORT: 3001
       DATABASE_URL: postgresql://${DB_USER:?DB_USER must be set}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:-facilitaestudos}?schema=public
