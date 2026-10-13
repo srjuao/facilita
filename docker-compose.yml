@@ -22,6 +22,20 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  migrate:
+    build:
+      context: ./backend
+      target: build
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:?DB_USER must be set}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:-facilitaestudos}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["npx", "prisma", "migrate", "deploy"]
+    security_opt:
+      - no-new-privileges:true
+
   backend:
     build:
       context: ./backend
@@ -33,10 +47,8 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-https://app.facilitaestudos.com.br}
       NODE_ENV: production
     depends_on:
-      db:
-        condition: service_healthy
-    # Apply an approved, versioned Prisma migration during the deployment runbook
-    # before starting this stack. Do not mutate the schema or seed data at boot.
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - uploads_data:/app/uploads
     healthcheck:
