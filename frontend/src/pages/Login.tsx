@@ -5,13 +5,14 @@ import { WordMark } from '../components/WordMark';
 export const Login: React.FC = () => {
   const { login } = useAuth();
   const [email, setEmail] = useState('joao.silva@aluno.unifan.edu.br');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setError('');
-      await login(email);
+      await login(email, password);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Erro ao realizar login.');
     }
@@ -76,7 +77,14 @@ export const Login: React.FC = () => {
 
           <div className="field">
             <label htmlFor="senha">Senha</label>
-            <input id="senha" type="password" defaultValue="REMOVED_DEMO_PASSWORD" />
+            <input
+              id="senha"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
           </div>
 
           <button className="btn primary wide" style={{ marginTop: '16px' }} type="submit">
@@ -96,7 +104,7 @@ export const Login: React.FC = () => {
                   className="demo-btn"
                   onClick={() => {
                     setEmail(acc.email);
-                    login(acc.email);
+                    setError('');
                   }}
                 >
                   <span className="avatar">
