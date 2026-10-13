@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { login, getMe } from './controllers/auth.controller';
-import { getTenants, getTenantById } from './controllers/tenant.controller';
+import { createTenant, createTenantUser, getTenants, getTenantById, getTenantUsers } from './controllers/tenant.controller';
 import { getCourseDetails } from './controllers/course.controller';
 import { getStudents, getStudentById } from './controllers/student.controller';
 import { getChatHistory, sendMessage } from './controllers/chat.controller';
@@ -41,6 +41,9 @@ app.post('/api/upload/video', authenticateToken, authorizeRoles('superadmin', 'c
 // Tenants
 app.get('/api/tenants', authenticateToken, authorizeRoles('superadmin', 'coord'), getTenants);
 app.get('/api/tenants/:id', authenticateToken, authorizeRoles('superadmin', 'coord'), getTenantById);
+app.post('/api/tenants', authenticateToken, authorizeRoles('superadmin'), createTenant);
+app.get('/api/tenants/:id/users', authenticateToken, authorizeRoles('superadmin'), getTenantUsers);
+app.post('/api/tenants/:id/users', authenticateToken, authorizeRoles('superadmin'), createTenantUser);
 
 // Courses
 app.get('/api/courses/:id', authenticateToken, getCourseDetails);

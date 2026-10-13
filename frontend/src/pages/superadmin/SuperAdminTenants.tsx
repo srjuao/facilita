@@ -1,43 +1,84 @@
-import React, { useEffect, useState } from 'react';
+import React, { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { Building2, CheckCircle2, ExternalLink, Plus, UsersRound, X } from 'lucide-react';
 import { TopBar } from '../../components/TopBar';
 import api from '../../api/client';
 import { Tenant } from '../../types';
 
+type TenantUser = { id: string; nome: string; email: string; papel: string; role: string };
+const blankFaculty = { nome: '', full: '', cidade: '', subdomain: '', admin: '' };
+const blankUser = { nome: '', email: '', role: 'coord', password: '' };
+
 export const SuperAdminTenants: React.FC = () => {
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [faculty, setFaculty] = useState(blankFaculty);
+  const [person, setPerson] = useState(blankUser);
+  const [selected, setSelected] = useState<Tenant | null>(null);
+  const [users, setUsers] = useState<TenantUser[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  const selectedId = useRef<string | null>(null);
 
-  useEffect(() => {
-    api.get('/tenants')
-      .then(res => setTenants(res.data))
-      .catch(err => console.error(err));
-  }, []);
+  const load = async () => {
+    setLoading(true);
+    try { setTenants((await api.get('/tenants')).data); }
+    catch { setNotice({ kind: 'error', text: 'Não foi possível carregar as faculdades.' }); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { void load(); }, []);
 
-  return (
-    <div>
-      <TopBar currentPage="Faculdades" />
-      <div style={{ padding: '0 28px 40px' }}>
-        <div className="page-head" style={{ marginBottom: '20px' }}>
-          <div>
-            <h1>Faculdades (Instituições Parceiras)</h1>
-            <p>Gerenciamento de tenancies, contratos e acessos institucionais.</p>
-          </div>
-        </div>
+  const suggestedDomain = useMemo(() => {
+    const slug = faculty.subdomain.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return `${slug || 'sua-faculdade'}.facilitaestudos.com.br`;
+  }, [faculty.subdomain]);
 
-        <div className="grid g3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-          {tenants.map((t) => (
-            <div key={t.id} className="card">
-              <h3>{t.nome}</h3>
-              <p className="muted" style={{ fontSize: '12px' }}>{t.full} · {t.cidade}</p>
-              <div style={{ margin: '12px 0', fontSize: '13px' }}>
-                <div>Domínio: <b>{t.dominio}</b></div>
-                <div>Desde: <b>{t.since}</b></div>
-                <div>Responsável: <b>{t.admin}</b></div>
-              </div>
-              <span className="pill good">{t.courses.length} cursos ativos</span>
-            </div>
-          ))}
-        </div>
+  const openFaculty = async (tenant: Tenant) => {
+    selectedId.current = tenant.id; setSelected(tenant); setUsers([]); setPerson(blankUser); setNotice(null);
+    try {
+      const response = await api.get(`/tenants/${tenant.id}/users`);
+      if (selectedId.current === tenant.id) setUsers(response.data);
+    }
+    catch { setNotice({ kind: 'error', text: 'A faculdade foi selecionada, mas os usuários não puderam ser carregados.' }); }
+  };
+
+  const createFaculty = async (event: FormEvent) => {
+    event.preventDefault(); setSaving(true); setNotice(null);
+    try {
+      const created = (await api.post('/tenants', faculty)).data as Tenant;
+      setTenants(current => [...current, created]); setFaculty(blankFaculty); setShowForm(false);
+      setNotice({ kind: 'ok', text: `Faculdade criada. O endereço reservado é ${created.dominio}.` });
+      await openFaculty(created);
+    } catch (error: any) { setNotice({ kind: 'error', text: error.response?.data?.error || 'Não foi possível criar a faculdade.' }); }
+    finally { setSaving(false); }
+  };
+
+  const linkPerson = async (event: FormEvent) => {
+    event.preventDefault(); if (!selected) return;
+    setSaving(true); setNotice(null);
+    try {
+      const created = (await api.post(`/tenants/${selected.id}/users`, person)).data as TenantUser;
+      if (selectedId.current === selected.id) setUsers(current => [...current, created]);
+      setNotice({ kind: 'ok', text: `${created.nome} foi vinculado a ${selected.nome}.` });
+    } catch (error: any) { setNotice({ kind: 'error', text: error.response?.data?.error || 'Não foi possível vincular o usuário.' }); }
+    finally { setSaving(false); }
+  };
+
+  return <div>
+    <TopBar currentPage="Central de faculdades" />
+    <div style={{ padding: '0 28px 44px', maxWidth: 1440, margin: '0 auto' }}>
+      <section style={{ display: 'flex', justifyContent: 'space-between', gap: 20, alignItems: 'end', padding: '20px 0 26px', borderBottom: '1px solid var(--line)' }}>
+        <div><p className="eyebrow">OPERAÇÃO DA PLATAFORMA</p><h1 style={{ margin: '5px 0 7px' }}>Faculdades, domínios e acessos.</h1><p className="muted" style={{ margin: 0 }}>Crie uma faculdade, reserve seu endereço e vincule a equipe que vai operar a instituição.</p></div>
+        <button className="primary" onClick={() => setShowForm(true)}><Plus size={18} /> Nova faculdade</button>
+      </section>
+      {notice && <div role="status" style={{ margin: '18px 0', padding: '12px 14px', borderRadius: 10, background: notice.kind === 'ok' ? '#ecfdf3' : '#fef2f2', color: notice.kind === 'ok' ? '#166534' : '#b91c1c' }}>{notice.text}</div>}
+      <div style={{ display: 'grid', gridTemplateColumns: selected ? 'minmax(0, 1fr) minmax(350px, .75fr)' : '1fr', gap: 24, marginTop: 26 }}>
+        <section><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}><h2 style={{ fontSize: 16, margin: 0 }}>Instituições cadastradas</h2><span className="pill">{tenants.length} ativas</span></div>
+          {loading ? <div className="card">Carregando faculdades…</div> : tenants.length === 0 ? <div className="card" style={{ padding: 32, textAlign: 'center' }}><Building2 size={28} /><p>Nenhuma faculdade cadastrada.</p></div> : <div style={{ display: 'grid', gap: 12 }}>{tenants.map(tenant => <button key={tenant.id} onClick={() => void openFaculty(tenant)} className="tenant-row" aria-pressed={selected?.id === tenant.id}><span className="tenant-mark">{tenant.nome.slice(0, 1)}</span><span style={{ textAlign: 'left', flex: 1 }}><b>{tenant.nome}</b><small>{tenant.cidade} · {tenant.full}</small></span><span className="domain"><CheckCircle2 size={14} /> {tenant.dominio}</span><span className="pill">{tenant.courses.length} cursos</span></button>)}</div>}
+        </section>
+        {selected && <aside className="card" style={{ padding: 0, overflow: 'hidden', alignSelf: 'start' }}><div style={{ padding: 20, background: '#102448', color: '#fff' }}><button aria-label="Fechar painel" onClick={() => { selectedId.current = null; setSelected(null); }} className="close"><X size={18} /></button><p className="eyebrow" style={{ color: '#bfdbfe' }}>FACULDADE SELECIONADA</p><h2 style={{ margin: '7px 0 4px' }}>{selected.nome}</h2><a href={`https://${selected.dominio}`} target="_blank" rel="noreferrer" style={{ color: '#bfdbfe', fontSize: 13 }}><ExternalLink size={14} /> {selected.dominio}</a></div><div style={{ padding: 20 }}><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><UsersRound size={17} /><b>Usuários vinculados</b><span className="pill" style={{ marginLeft: 'auto' }}>{users.length}</span></div><div style={{ margin: '12px 0 18px' }}>{users.length ? users.map(item => <div key={item.id} style={{ padding: '9px 0', borderBottom: '1px solid var(--line)' }}><b style={{ display: 'block', fontSize: 13 }}>{item.nome}</b><small className="muted">{item.email} · {item.papel}</small></div>) : <p className="muted">Ainda não há usuários nesta faculdade.</p>}</div><form className="compact-form" onSubmit={linkPerson}><h3>Vincular pessoa</h3><p className="muted">Para nova conta, use senha temporária. Contas existentes serão apenas vinculadas.</p><label>Nome<input required value={person.nome} onChange={e => setPerson({ ...person, nome: e.target.value })} /></label><label>E-mail institucional<input type="email" required value={person.email} onChange={e => setPerson({ ...person, email: e.target.value })} /></label><label>Perfil<select value={person.role} onChange={e => setPerson({ ...person, role: e.target.value })}><option value="coord">Coordenação</option><option value="aluno">Aluno</option></select></label><label>Senha temporária<input type="password" minLength={12} value={person.password} onChange={e => setPerson({ ...person, password: e.target.value })} /></label><button className="primary" disabled={saving}>{saving ? 'Salvando…' : 'Vincular usuário'}</button></form></div></aside>}
       </div>
+      {showForm && <div className="modal-backdrop"><form className="card college-form" onSubmit={createFaculty}><button type="button" onClick={() => setShowForm(false)} className="close" aria-label="Fechar"><X size={20} /></button><p className="eyebrow">NOVA FACULDADE</p><h2>Reserve a presença da instituição</h2><p className="muted">O subdomínio será a porta de entrada exclusiva da faculdade.</p><label>Nome de exibição<input required value={faculty.nome} placeholder="UniGoiás" onChange={e => setFaculty({ ...faculty, nome: e.target.value })} /></label><label>Razão social<input required value={faculty.full} placeholder="Faculdade UniGoiás" onChange={e => setFaculty({ ...faculty, full: e.target.value })} /></label><label>Cidade<input required value={faculty.cidade} placeholder="Goiânia, GO" onChange={e => setFaculty({ ...faculty, cidade: e.target.value })} /></label><label>Subdomínio<input required value={faculty.subdomain} placeholder="unigoias" onChange={e => setFaculty({ ...faculty, subdomain: e.target.value })} /><small>Endereço: <b>{suggestedDomain}</b></small></label><label>Responsável institucional<input required value={faculty.admin} placeholder="Nome do responsável" onChange={e => setFaculty({ ...faculty, admin: e.target.value })} /></label><div style={{ display: 'flex', gap: 10, justifyContent: 'end', marginTop: 18 }}><button type="button" className="ghost" onClick={() => setShowForm(false)}>Cancelar</button><button className="primary" disabled={saving}>{saving ? 'Criando…' : 'Criar faculdade'}</button></div></form></div>}
     </div>
-  );
+  </div>;
 };
