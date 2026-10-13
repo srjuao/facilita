@@ -21,6 +21,8 @@ services:
         max-file: "3"
     security_opt:
       - no-new-privileges:true
+    networks:
+      - facilita_internal
 
   migrate:
     build:
@@ -35,6 +37,8 @@ services:
     command: ["npx", "prisma", "migrate", "deploy"]
     security_opt:
       - no-new-privileges:true
+    networks:
+      - facilita_internal
 
   backend:
     build:
@@ -71,6 +75,9 @@ services:
     pids_limit: 150
     mem_limit: 512m
     cpus: 1.0
+    networks:
+      - facilita_internal
+      - dokploy_network
 
   frontend:
     build:
@@ -100,7 +107,19 @@ services:
     pids_limit: 100
     mem_limit: 256m
     cpus: 0.5
+    networks:
+      - facilita_internal
+      - dokploy_network
 
 volumes:
   db_data:
   uploads_data:
+
+networks:
+  # Isolates database traffic from the public proxy network.
+  facilita_internal:
+    internal: true
+  # Created and managed by Dokploy on the remote VPS.
+  dokploy_network:
+    name: dokploy-network
+    external: true
