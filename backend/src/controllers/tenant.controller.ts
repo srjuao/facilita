@@ -175,7 +175,7 @@ export const createTenantUser = async (req: AuthRequest, res: Response) => {
       return res.status(409).json({ error: 'Essa conta já está vinculada a outra faculdade.' });
     }
     if (!existingUser && (!password || password.length < 12)) {
-      return res.status(400).json({ error: 'Para uma nova conta, defina uma senha temporária de ao menos 12 caracteres.' });
+      return res.status(400).json({ error: 'Para uma nova conta, defina uma senha de ao menos 12 caracteres.' });
     }
     const safeSelect = { id: true, nome: true, email: true, papel: true, role: true, photo: true, courseId: true } as const;
     const user = existingUser
