@@ -7,7 +7,7 @@ interface TopBarProps {
   currentPage: string;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ courseName = 'Medicina', currentPage }) => {
+export const TopBar: React.FC<TopBarProps> = ({ courseName, currentPage }) => {
   return (
     <header style={{
       display: 'flex',
