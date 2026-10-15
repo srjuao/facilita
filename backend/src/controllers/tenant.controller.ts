@@ -122,7 +122,9 @@ export const updateTenantBranding = async (req: AuthRequest, res: Response) => {
     if (values.some(value => typeof value !== 'string')) return res.status(400).json({ error: 'Os dados de identidade são inválidos.' });
     if (!/^#[0-9a-fA-F]{6}$/.test(primaryColor as string)) return res.status(400).json({ error: 'Escolha uma cor hexadecimal válida.' });
     for (const url of [logoUrl, loginImageUrl, faviconUrl] as string[]) {
-      if (url && !/^https:\/\//.test(url)) return res.status(400).json({ error: 'As imagens precisam usar URLs HTTPS.' });
+      const isRemoteHttps = /^https:\/\//.test(url);
+      const isOwnUpload = /^\/api\/uploads\/branding\/[a-zA-Z0-9._-]+$/.test(url);
+      if (url && !isRemoteHttps && !isOwnUpload) return res.status(400).json({ error: 'Use uma URL HTTPS ou um arquivo enviado pela plataforma.' });
     }
     const updated = await prisma.tenant.update({
       where: { id: req.params.id },

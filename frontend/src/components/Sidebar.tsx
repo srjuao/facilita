@@ -55,6 +55,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
       { id: 'co-ucs', label: 'Períodos e UCs', icon: <Calendar size={18} /> },
       { id: 'co-conteudo', label: 'Conteúdo', icon: <BookOpen size={18} /> },
       { id: 'co-gestao', label: 'Gestão Cursos & Aulas', icon: <Sliders size={18} /> },
+      { id: 'co-setup', label: 'Unidade e equipe', icon: <Building2 size={18} /> },
+    ],
+    professor: [
+      { sec: 'Meu curso' },
+      { id: 'co-gestao', label: 'Conteúdo e aulas', icon: <BookOpen size={18} /> },
     ],
     aluno: [
       { id: 'al-inicio', label: 'Início', icon: <Home size={18} /> },

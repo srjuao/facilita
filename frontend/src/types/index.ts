@@ -3,7 +3,7 @@ export interface User {
   email: string;
   nome: string;
   papel: string;
-  role: 'superadmin' | 'coord' | 'aluno';
+  role: 'superadmin' | 'coord' | 'professor' | 'aluno';
   photo: number;
   tenantId?: string;
   courseId?: string;

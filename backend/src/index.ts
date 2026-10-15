@@ -8,6 +8,7 @@ import { getStudents, getStudentById } from './controllers/student.controller';
 import { getChatHistory, sendMessage } from './controllers/chat.controller';
 import { getExams } from './controllers/exam.controller';
 import { getLessonsByModule, getLessonById } from './controllers/lesson.controller';
+import { createCoordCourse, createCoordTeacher, getCoordCourses } from './controllers/coord.controller';
 import { brandingUpload, handleBrandingUpload, upload, handleVideoUpload } from './controllers/upload.controller';
 import { authenticateToken, authorizeRoles } from './middleware/auth';
 import path from 'path';
@@ -38,7 +39,7 @@ app.get('/api/auth/me', authenticateToken, getMe);
 app.get('/api/public/tenant-branding', getPublicTenantBranding);
 
 // Uploads
-app.post('/api/upload/video', authenticateToken, authorizeRoles('superadmin', 'coord'), upload.single('video'), handleVideoUpload);
+app.post('/api/upload/video', authenticateToken, authorizeRoles('superadmin', 'coord', 'professor'), upload.single('video'), handleVideoUpload);
 app.post('/api/tenants/:id/branding/upload', authenticateToken, authorizeRoles('superadmin'), brandingUpload.single('file'), handleBrandingUpload);
 
 // Tenants
@@ -49,6 +50,11 @@ app.patch('/api/tenants/:id/status', authenticateToken, authorizeRoles('superadm
 app.patch('/api/tenants/:id/branding', authenticateToken, authorizeRoles('superadmin'), updateTenantBranding);
 app.get('/api/tenants/:id/users', authenticateToken, authorizeRoles('superadmin'), getTenantUsers);
 app.post('/api/tenants/:id/users', authenticateToken, authorizeRoles('superadmin'), createTenantUser);
+
+// Gestão da própria unidade pela coordenação.
+app.get('/api/coord/courses', authenticateToken, authorizeRoles('coord'), getCoordCourses);
+app.post('/api/coord/courses', authenticateToken, authorizeRoles('coord'), createCoordCourse);
+app.post('/api/coord/teachers', authenticateToken, authorizeRoles('coord'), createCoordTeacher);
 
 // Courses
 app.get('/api/courses/:id', authenticateToken, getCourseDetails);

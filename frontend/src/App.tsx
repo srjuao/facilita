@@ -25,6 +25,7 @@ import { CoordUCs } from './pages/coord/CoordUCs';
 import { CoordContent } from './pages/coord/CoordContent';
 import { CoordReport } from './pages/coord/CoordReport';
 import { CoordCourseManager } from './pages/coord/CoordCourseManager';
+import { CoordUnitSetup } from './pages/coord/CoordUnitSetup';
 
 // SuperAdmin Pages
 import { SuperAdminOverview } from './pages/superadmin/SuperAdminOverview';
@@ -54,7 +55,7 @@ export const AppContent: React.FC = () => {
 
   // Roteamento padrão por papel caso não haja view selecionada
   const activeView = currentView === 'default'
-    ? user.role === 'superadmin' ? 'sa-overview' : user.role === 'coord' ? 'co-dash' : 'al-inicio'
+    ? user.role === 'superadmin' ? 'sa-overview' : user.role === 'coord' ? 'co-dash' : user.role === 'professor' ? 'co-gestao' : 'al-inicio'
     : currentView;
 
   const renderView = () => {
@@ -71,7 +72,7 @@ export const AppContent: React.FC = () => {
       case 'al-perfil': return <StudentProfile />;
 
       // Coordenação
-      case 'co-dash': return <CoordDashboard />;
+      case 'co-dash': return <CoordDashboard onNavigate={setCurrentView} />;
       case 'co-alunos': return <CoordStudents />;
       case 'co-subs': return <CoordSubs />;
       case 'co-alertas': return <CoordAlerts />;
@@ -80,6 +81,7 @@ export const AppContent: React.FC = () => {
       case 'co-ucs': return <CoordUCs />;
       case 'co-conteudo': return <CoordContent />;
       case 'co-gestao': return <CoordCourseManager />;
+      case 'co-setup': return <CoordUnitSetup />;
       case 'co-relatorio': return <CoordReport />;
 
       // SuperAdmin
