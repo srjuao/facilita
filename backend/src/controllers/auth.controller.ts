@@ -2,8 +2,17 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { generateToken, AuthRequest } from '../middleware/auth';
+import { createChangePasswordHandler } from './change-password';
 
 const prisma = new PrismaClient();
+
+export const changePassword = createChangePasswordHandler({
+  find: id => prisma.user.findUnique({ where: { id }, select: { id: true, role: true, password: true } }),
+  replace: async (id, previousHash, newHash) => {
+    const result = await prisma.user.updateMany({ where: { id, role: 'superadmin', password: previousHash }, data: { password: newHash } });
+    return result.count === 1;
+  }
+});
 
 export const login = async (req: Request, res: Response) => {
   try {

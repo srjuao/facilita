@@ -39,6 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
       { id: 'sa-tenants', label: 'Faculdades', icon: <Building2 size={18} /> },
       { id: 'sa-courses', label: 'Cursos', icon: <BookOpen size={18} /> },
       { id: 'sa-fin', label: 'Financeiro', icon: <DollarSign size={18} /> },
+      { id: 'sa-account', label: 'Minha conta', icon: <User size={18} /> },
       { sec: 'Instituição selecionada' },
       { id: 'co-dash', label: 'Entrar na coordenação', icon: <ArrowRight size={18} /> },
     ],

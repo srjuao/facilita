@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { login, getMe } from './controllers/auth.controller';
+import { login, getMe, changePassword } from './controllers/auth.controller';
 import { createTenant, createTenantUser, getPublicTenantBranding, getTenants, getTenantById, getTenantUsers, updateTenantBranding, updateTenantStatus } from './controllers/tenant.controller';
 import { getCourseDetails } from './controllers/course.controller';
 import { createStudent, getStudents, getStudentById } from './controllers/student.controller';
@@ -37,6 +37,7 @@ app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));
 // Auth
 app.post('/api/auth/login', login);
 app.get('/api/auth/me', authenticateToken, getMe);
+app.patch('/api/auth/password', authenticateToken, authorizeRoles('superadmin'), changePassword);
 app.get('/api/public/tenant-branding', getPublicTenantBranding);
 
 // Uploads

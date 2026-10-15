@@ -35,6 +35,7 @@ import { SuperAdminTenants } from './pages/superadmin/SuperAdminTenants';
 import { SuperAdminCourses } from './pages/superadmin/SuperAdminCourses';
 import { SuperAdminFinancial } from './pages/superadmin/SuperAdminFinancial';
 import { SuperAdminLogin } from './pages/superadmin/SuperAdminLogin';
+import { SuperAdminAccount } from './pages/superadmin/SuperAdminAccount';
 
 export const AppContent: React.FC = () => {
   const { user, loading, logout } = useAuth();
@@ -107,6 +108,7 @@ export const AppContent: React.FC = () => {
       case 'sa-tenants': return <SuperAdminTenants />;
       case 'sa-courses': return <SuperAdminCourses />;
       case 'sa-fin': return <SuperAdminFinancial />;
+      case 'sa-account': return <SuperAdminAccount />;
 
       default:
         return <StudentHome onNavigate={setCurrentView} />;
