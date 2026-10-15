@@ -18,14 +18,6 @@ export const Login: React.FC = () => {
     }
   };
 
-  const demoAccounts = [
-    { label: 'Superadmin Facilita', email: 'admin@facilita.app', desc: 'superadmin', img: 33 },
-    { label: 'Coordenação · UNIFAN Medicina', email: 'coordenacao@unifan.edu.br', desc: 'coordenacao@unifan.edu.br → FacilitaMed', img: 47 },
-    { label: 'Aluno · João Silva', email: 'joao.silva@aluno.unifan.edu.br', desc: 'joao.silva@aluno.unifan.edu.br → FacilitaMed', img: 12 },
-    { label: 'Coordenação · UniSerra Odontologia', email: 'coordenacao@uniserra.edu.br', desc: 'coordenacao@uniserra.edu.br → Facilita Odonto', img: 56 },
-    { label: 'Aluna · Ana Paula Ribeiro', email: 'ana.ribeiro@aluno.uniserra.edu.br', desc: 'ana.ribeiro@aluno.uniserra.edu.br → Facilita Odonto', img: 25 },
-  ];
-
   return (
     <div className="login">
       <div className="login-art">
@@ -93,33 +85,6 @@ export const Login: React.FC = () => {
             Acessar plataforma
           </button>
 
-          <div className="demo">
-            <div className="eyebrow">Contas de demonstração</div>
-            <p className="muted" style={{ fontSize: '12px', marginTop: '4px' }}>
-              Clique para preencher o e-mail de teste:
-            </p>
-            <div className="demo-grid">
-              {demoAccounts.map((acc) => (
-                <button
-                  key={acc.email}
-                  type="button"
-                  className="demo-btn"
-                  onClick={() => {
-                    setEmail(acc.email);
-                    setError('');
-                  }}
-                >
-                  <span className="avatar">
-                    <img src={`https://i.pravatar.cc/96?img=${acc.img}`} alt="" />
-                  </span>
-                  <span>
-                    <b>{acc.label}</b>
-                    <small>{acc.desc}</small>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
         </form>
       </div>
     </div>
