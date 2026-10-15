@@ -60,6 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     professor: [
       { sec: 'Meu curso' },
       { id: 'co-gestao', label: 'Conteúdo e aulas', icon: <BookOpen size={18} /> },
+      { id: 'co-alunos', label: 'Alunos', icon: <Users size={18} /> },
     ],
     aluno: [
       { id: 'al-inicio', label: 'Início', icon: <Home size={18} /> },

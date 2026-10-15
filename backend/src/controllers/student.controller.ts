@@ -1,8 +1,29 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import { AuthRequest, canAccessCourse } from '../middleware/auth';
 
 const prisma = new PrismaClient();
+const validPassword = (value: string) => value.length >= 8 && /[A-Za-z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9]/.test(value);
+
+export const createStudent = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user?.courseId || !req.user.tenantId) return res.status(403).json({ error: 'Associe sua conta a um curso antes de cadastrar alunos.' });
+    const { nome, matricula, email, password } = req.body as Record<string, string>;
+    if (!nome?.trim() || !matricula?.trim() || !email?.trim() || !validPassword(password || '')) return res.status(400).json({ error: 'Preencha matrícula, nome, e-mail e uma senha válida.' });
+    const normalizedEmail = email.trim().toLowerCase();
+    const duplicateEmail = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (duplicateEmail) return res.status(409).json({ error: 'Já existe uma conta com este e-mail.' });
+    const duplicateRegistration = await prisma.student.findFirst({ where: { courseId: req.user.courseId, sub: matricula.trim() } });
+    if (duplicateRegistration) return res.status(409).json({ error: 'Esta matrícula já está cadastrada neste curso.' });
+    const result = await prisma.$transaction(async tx => {
+      const student = await tx.student.create({ data: { nome: nome.trim(), sub: matricula.trim(), progresso: 0, nota: 0, tempo: 0, ultimo: 0, risco: 'baixo', atividade: '[]', weeks: '[]', notas: '{}', tempos: '{}', courseId: req.user!.courseId! } });
+      await tx.user.create({ data: { nome: nome.trim(), email: normalizedEmail, password: await bcrypt.hash(password, 12), papel: 'Aluno', role: 'aluno', tenantId: req.user!.tenantId!, courseId: req.user!.courseId!, studentId: student.id } });
+      return student;
+    });
+    return res.status(201).json(result);
+  } catch { return res.status(500).json({ error: 'Não foi possível cadastrar o aluno.' }); }
+};
 
 export const getStudents = async (req: AuthRequest, res: Response) => {
   try {

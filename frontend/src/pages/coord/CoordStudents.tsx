@@ -9,6 +9,9 @@ export const CoordStudents: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [filterRisco, setFilterRisco] = useState<string>('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [newStudent, setNewStudent] = useState({ nome: '', matricula: '', email: '', password: '' });
+  const [notice, setNotice] = useState('');
 
   useEffect(() => {
     if (user?.courseId) {
@@ -17,6 +20,15 @@ export const CoordStudents: React.FC = () => {
         .catch(err => console.error(err));
     }
   }, [user, filterRisco]);
+
+  const createStudent = async (event: React.FormEvent) => {
+    event.preventDefault(); setNotice('');
+    try {
+      const student = (await api.post('/students', newStudent)).data as Student;
+      setStudents(current => [...current, student]); setNewStudent({ nome: '', matricula: '', email: '', password: '' }); setShowCreate(false);
+      setNotice('Aluno cadastrado. A conta de acesso já está pronta.');
+    } catch (error: any) { setNotice(error.response?.data?.error || 'Não foi possível cadastrar o aluno.'); }
+  };
 
   return (
     <div>
@@ -32,8 +44,11 @@ export const CoordStudents: React.FC = () => {
             <button className={`chip ${filterRisco === 'alto' ? 'on' : ''}`} onClick={() => setFilterRisco('alto')}>Alto risco</button>
             <button className={`chip ${filterRisco === 'medio' ? 'on' : ''}`} onClick={() => setFilterRisco('medio')}>Atenção</button>
             <button className={`chip ${filterRisco === 'baixo' ? 'on' : ''}`} onClick={() => setFilterRisco('baixo')}>Em dia</button>
+            <button className="primary" onClick={() => setShowCreate(true)}>Cadastrar aluno</button>
           </div>
         </div>
+
+        {notice && <div className="notice ok" role="status">{notice}</div>}
 
         <div className="card">
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -93,6 +108,7 @@ export const CoordStudents: React.FC = () => {
             </div>
           </div>
         )}
+        {showCreate && <div className="modal-backdrop"><form className="card college-form" onSubmit={createStudent}><button type="button" className="close" onClick={() => setShowCreate(false)}>×</button><p className="eyebrow">NOVO ALUNO</p><h2>Criar acesso acadêmico</h2><p className="muted">A matrícula identifica o aluno dentro deste curso.</p><label>Nome completo<input required value={newStudent.nome} onChange={event => setNewStudent({ ...newStudent, nome: event.target.value })} /></label><label>Matrícula<input required value={newStudent.matricula} onChange={event => setNewStudent({ ...newStudent, matricula: event.target.value })} /></label><label>E-mail<input required type="email" value={newStudent.email} onChange={event => setNewStudent({ ...newStudent, email: event.target.value })} /></label><label>Senha<input required type="password" minLength={8} value={newStudent.password} onChange={event => setNewStudent({ ...newStudent, password: event.target.value })} /><small>8+ caracteres, letra, número e caractere especial.</small></label><button className="primary">Cadastrar aluno</button></form></div>}
       </div>
     </div>
   );

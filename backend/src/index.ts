@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { login, getMe } from './controllers/auth.controller';
 import { createTenant, createTenantUser, getPublicTenantBranding, getTenants, getTenantById, getTenantUsers, updateTenantBranding, updateTenantStatus } from './controllers/tenant.controller';
 import { getCourseDetails } from './controllers/course.controller';
-import { getStudents, getStudentById } from './controllers/student.controller';
+import { createStudent, getStudents, getStudentById } from './controllers/student.controller';
 import { getChatHistory, sendMessage } from './controllers/chat.controller';
 import { getExams } from './controllers/exam.controller';
 import { getLessonsByModule, getLessonById } from './controllers/lesson.controller';
@@ -65,6 +65,7 @@ app.get('/api/lessons/:id', authenticateToken, getLessonById);
 
 // Students
 app.get('/api/students', authenticateToken, getStudents);
+app.post('/api/students', authenticateToken, authorizeRoles('coord', 'professor'), createStudent);
 app.get('/api/students/:id', authenticateToken, getStudentById);
 
 // Chat IA
