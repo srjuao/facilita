@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { login, getMe } from './controllers/auth.controller';
-import { createTenant, createTenantUser, getTenants, getTenantById, getTenantUsers, updateTenantStatus } from './controllers/tenant.controller';
+import { createTenant, createTenantUser, getPublicTenantBranding, getTenants, getTenantById, getTenantUsers, updateTenantBranding, updateTenantStatus } from './controllers/tenant.controller';
 import { getCourseDetails } from './controllers/course.controller';
 import { getStudents, getStudentById } from './controllers/student.controller';
 import { getChatHistory, sendMessage } from './controllers/chat.controller';
@@ -34,6 +34,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Auth
 app.post('/api/auth/login', login);
 app.get('/api/auth/me', authenticateToken, getMe);
+app.get('/api/public/tenant-branding', getPublicTenantBranding);
 
 // Uploads
 app.post('/api/upload/video', authenticateToken, authorizeRoles('superadmin', 'coord'), upload.single('video'), handleVideoUpload);
@@ -43,6 +44,7 @@ app.get('/api/tenants', authenticateToken, authorizeRoles('superadmin', 'coord')
 app.get('/api/tenants/:id', authenticateToken, authorizeRoles('superadmin', 'coord'), getTenantById);
 app.post('/api/tenants', authenticateToken, authorizeRoles('superadmin'), createTenant);
 app.patch('/api/tenants/:id/status', authenticateToken, authorizeRoles('superadmin'), updateTenantStatus);
+app.patch('/api/tenants/:id/branding', authenticateToken, authorizeRoles('superadmin'), updateTenantBranding);
 app.get('/api/tenants/:id/users', authenticateToken, authorizeRoles('superadmin'), getTenantUsers);
 app.post('/api/tenants/:id/users', authenticateToken, authorizeRoles('superadmin'), createTenantUser);
 

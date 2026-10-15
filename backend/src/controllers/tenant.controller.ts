@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { AuthRequest, canAccessTenant } from '../middleware/auth';
@@ -111,6 +111,40 @@ export const updateTenantStatus = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     return res.status(500).json({ error: 'Não foi possível atualizar o status da faculdade.' });
   }
+};
+
+export const updateTenantBranding = async (req: AuthRequest, res: Response) => {
+  try {
+    const { logoUrl = '', loginImageUrl = '', faviconUrl = '', browserTitle = '', primaryColor = '#2f7dd1' } = req.body as Record<string, unknown>;
+    const values = [logoUrl, loginImageUrl, faviconUrl, browserTitle, primaryColor];
+    if (values.some(value => typeof value !== 'string')) return res.status(400).json({ error: 'Os dados de identidade são inválidos.' });
+    if (!/^#[0-9a-fA-F]{6}$/.test(primaryColor as string)) return res.status(400).json({ error: 'Escolha uma cor hexadecimal válida.' });
+    for (const url of [logoUrl, loginImageUrl, faviconUrl] as string[]) {
+      if (url && !/^https:\/\//.test(url)) return res.status(400).json({ error: 'As imagens precisam usar URLs HTTPS.' });
+    }
+    const updated = await prisma.tenant.update({
+      where: { id: req.params.id },
+      data: {
+        logoUrl: (logoUrl as string).trim(), loginImageUrl: (loginImageUrl as string).trim(),
+        faviconUrl: (faviconUrl as string).trim(), browserTitle: (browserTitle as string).trim(),
+        primaryColor: primaryColor as string
+      },
+      include: { courses: true }
+    });
+    return res.json(updated);
+  } catch {
+    return res.status(404).json({ error: 'Faculdade não encontrada.' });
+  }
+};
+
+export const getPublicTenantBranding = async (req: Request, res: Response) => {
+  const host = String(req.headers.host || '').split(':')[0].toLowerCase();
+  if (!host.endsWith('.facilitaestudos.com.br')) return res.status(204).end();
+  const tenant = await prisma.tenant.findFirst({
+    where: { dominio: host, ativo: true },
+    select: { nome: true, dominio: true, logoUrl: true, loginImageUrl: true, faviconUrl: true, browserTitle: true, primaryColor: true }
+  });
+  return tenant ? res.json(tenant) : res.status(204).end();
 };
 
 export const getTenantUsers = async (req: AuthRequest, res: Response) => {

@@ -39,6 +39,11 @@ export interface Tenant {
   since: string;
   ativo: boolean;
   desativadoEm?: string | null;
+  logoUrl: string;
+  loginImageUrl: string;
+  faviconUrl: string;
+  browserTitle: string;
+  primaryColor: string;
   courses: Course[];
 }
 
