@@ -1,6 +1,5 @@
 import React from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { WordMark } from './WordMark';
 import { 
   LayoutDashboard, 
   Building2, 
@@ -75,17 +74,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
   };
 
   const navItems = NAVS[role] || NAVS.aluno;
-  const courseName = user.course?.nome || 'Medicina';
   const tenantName = user.tenant?.nome || 'UNIFAN';
 
   return (
     <aside className="side">
       <div className="wm-wrap">
         <div className="wm-mini">
-          <WordMark courseName={courseName} />
+          <img src="/facilita-estudos-mark.svg" alt="Facilita Estudos" />
         </div>
         <div className="wm-full">
-          <WordMark courseName={courseName} />
+          <img src="/facilita-estudos-logo.svg" alt="Facilita Estudos" />
         </div>
       </div>
       <div className="tenant">{tenantName}</div>

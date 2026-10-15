@@ -81,6 +81,7 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stro
 .side .wm-mini{position:absolute;left:0;top:-2px;width:36px;height:34px;display:grid;place-items:center;transition:opacity .12s}
 .side .wm-full{display:flex;align-items:center;gap:8px}
 .side .wm-full .wm{padding:0}
+.side .wm-mini img{width:34px;height:34px}.side .wm-full img{width:188px;height:auto;display:block}
 .side:hover .wm-mini,.side:focus-within .wm-mini{opacity:0}
 .side .sec{height:14px;margin:14px 10px 4px}
 @media (prefers-reduced-motion:reduce){.side,.side *{transition:none!important}}
