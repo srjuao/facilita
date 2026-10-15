@@ -32,15 +32,16 @@ export const Login: React.FC = () => {
         <div className="logo-row">
           <div>
             <WordMark />
-            <div style={{ fontSize: '12px', letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--accent-ink)', marginTop: '2px' }}>
+            <div style={{ fontSize: '12px', letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,.78)', marginTop: '2px' }}>
               Plataforma multi-instituição
             </div>
           </div>
         </div>
         <div>
-          <h1>Apoio acadêmico que a coordenação consegue medir.</h1>
+          <div className="login-art-kicker">Inteligência que aproxima</div>
+          <h1>O espaço certo para cada jornada acadêmica.</h1>
           <p className="lead">
-            Uma plataforma, várias faculdades. Cada curso ganha a sua marca, o seu acervo e um painel de acompanhamento de alunos em tempo real — uso, tempo de estudo, notas, dificuldades e picos em semana de prova.
+            Uma plataforma para a instituição, coordenação e alunos seguirem juntos — com clareza, contexto e evolução em cada etapa.
           </p>
           <div className="brand-list">
             {['Medicina', 'Odontologia', 'Enfermagem', 'Direito', 'Psicologia', 'Fisioterapia'].map((c) => (
@@ -56,7 +57,8 @@ export const Login: React.FC = () => {
       <div className="login-form">
         <form className="login-card" onSubmit={handleSubmit}>
           <div className="eyebrow">Entrar</div>
-          <h2 style={{ marginTop: '6px' }}>Acesse a sua instituição</h2>
+          <h2 style={{ marginTop: '6px' }}>Bem-vindo de volta</h2>
+          <p className="login-subtitle">Acesse sua instituição para continuar.</p>
           
           <div className="field">
             <label htmlFor="email">E-mail institucional</label>
@@ -87,8 +89,8 @@ export const Login: React.FC = () => {
             />
           </div>
 
-          <button className="btn primary wide" style={{ marginTop: '16px' }} type="submit">
-            Entrar
+          <button className="btn primary wide login-submit" style={{ marginTop: '18px' }} type="submit">
+            Acessar plataforma
           </button>
 
           <div className="demo">
