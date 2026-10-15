@@ -21,8 +21,11 @@ export const getTenants = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Instituição não associada ao usuário.' });
     }
     const tenants = await prisma.tenant.findMany({
-      where: req.user?.role === 'superadmin' ? undefined : { id: req.user?.tenantId },
-      include: { courses: true }
+      where: req.user?.role === 'superadmin'
+        ? undefined
+        : { id: req.user?.tenantId, ativo: true },
+      include: { courses: true },
+      orderBy: [{ ativo: 'desc' }, { nome: 'asc' }]
     });
     return res.json(tenants);
   } catch (error) {
@@ -37,7 +40,7 @@ export const getTenantById = async (req: AuthRequest, res: Response) => {
       where: { id },
       include: { courses: true }
     });
-    if (!tenant) return res.status(404).json({ error: 'Faculdade não encontrada' });
+    if (!tenant || (!tenant.ativo && req.user?.role !== 'superadmin')) return res.status(404).json({ error: 'Faculdade não encontrada' });
     if (!canAccessTenant(req.user, tenant.id)) return res.status(403).json({ error: 'Acesso negado a esta faculdade.' });
     return res.json(tenant);
   } catch (error) {
@@ -47,9 +50,12 @@ export const getTenantById = async (req: AuthRequest, res: Response) => {
 
 export const createTenant = async (req: AuthRequest, res: Response) => {
   try {
-    const { nome, full, cidade, subdomain, admin } = req.body as Record<string, string>;
-    if (!nome?.trim() || !full?.trim() || !cidade?.trim() || !subdomain?.trim() || !admin?.trim()) {
-      return res.status(400).json({ error: 'Preencha nome, razão social, cidade, subdomínio e responsável.' });
+    const { nome, full, cidade, subdomain, admin, adminEmail, adminPassword } = req.body as Record<string, string>;
+    if (!nome?.trim() || !full?.trim() || !cidade?.trim() || !subdomain?.trim() || !admin?.trim() || !adminEmail?.trim() || !adminPassword) {
+      return res.status(400).json({ error: 'Preencha os dados da faculdade e do administrador responsável.' });
+    }
+    if (!/^\S+@\S+\.\S+$/.test(adminEmail.trim()) || adminPassword.length < 12) {
+      return res.status(400).json({ error: 'Use um e-mail válido e uma senha de pelo menos 12 caracteres.' });
     }
 
     const slug = toSubdomain(subdomain);
@@ -61,17 +67,49 @@ export const createTenant = async (req: AuthRequest, res: Response) => {
     const exists = await prisma.tenant.findUnique({ where: { dominio } });
     if (exists) return res.status(409).json({ error: 'Esse subdomínio já está em uso.' });
 
-    const tenant = await prisma.tenant.create({
-      data: {
-        id: makeTenantId(), nome: nome.trim(), full: full.trim(), cidade: cidade.trim(),
-        dominio, admin: admin.trim(), since: new Date().toLocaleDateString('pt-BR'),
-        color: '#2f7dd1', cover: ''
-      },
-      include: { courses: true }
+    const normalizedAdminEmail = adminEmail.trim().toLowerCase();
+    const emailExists = await prisma.user.findUnique({ where: { email: normalizedAdminEmail } });
+    if (emailExists) return res.status(409).json({ error: 'Já existe uma conta com este e-mail.' });
+
+    const tenant = await prisma.$transaction(async (tx) => {
+      const created = await tx.tenant.create({
+        data: {
+          id: makeTenantId(), nome: nome.trim(), full: full.trim(), cidade: cidade.trim(),
+          dominio, admin: admin.trim(), since: new Date().toLocaleDateString('pt-BR'),
+          color: '#2f7dd1', cover: ''
+        },
+        include: { courses: true }
+      });
+      await tx.user.create({
+        data: {
+          nome: admin.trim(), email: normalizedAdminEmail, password: await bcrypt.hash(adminPassword, 12),
+          role: 'coord', papel: `Administrador · ${created.nome}`, tenantId: created.id
+        }
+      });
+      return created;
     });
     return res.status(201).json(tenant);
   } catch (error) {
     return res.status(500).json({ error: 'Não foi possível criar a faculdade.' });
+  }
+};
+
+export const updateTenantStatus = async (req: AuthRequest, res: Response) => {
+  try {
+    const { ativo } = req.body as { ativo?: unknown };
+    if (typeof ativo !== 'boolean') return res.status(400).json({ error: 'Informe o novo status da unidade.' });
+
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.params.id } });
+    if (!tenant) return res.status(404).json({ error: 'Faculdade não encontrada.' });
+
+    const updated = await prisma.tenant.update({
+      where: { id: tenant.id },
+      data: { ativo, desativadoEm: ativo ? null : new Date() },
+      include: { courses: true }
+    });
+    return res.json(updated);
+  } catch (error) {
+    return res.status(500).json({ error: 'Não foi possível atualizar o status da faculdade.' });
   }
 };
 
@@ -96,6 +134,7 @@ export const createTenantUser = async (req: AuthRequest, res: Response) => {
     }
     const tenant = await prisma.tenant.findUnique({ where: { id: req.params.id } });
     if (!tenant) return res.status(404).json({ error: 'Faculdade não encontrada.' });
+    if (!tenant.ativo) return res.status(409).json({ error: 'Reative a faculdade antes de vincular usuários.' });
     const normalizedEmail = email.trim().toLowerCase();
     const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existingUser?.tenantId && existingUser.tenantId !== tenant.id) {

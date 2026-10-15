@@ -4,7 +4,7 @@ import { WordMark } from '../components/WordMark';
 
 export const Login: React.FC = () => {
   const { login } = useAuth();
-  const [email, setEmail] = useState('joao.silva@aluno.unifan.edu.br');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 

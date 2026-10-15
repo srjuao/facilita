@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { login, getMe } from './controllers/auth.controller';
-import { createTenant, createTenantUser, getTenants, getTenantById, getTenantUsers } from './controllers/tenant.controller';
+import { createTenant, createTenantUser, getTenants, getTenantById, getTenantUsers, updateTenantStatus } from './controllers/tenant.controller';
 import { getCourseDetails } from './controllers/course.controller';
 import { getStudents, getStudentById } from './controllers/student.controller';
 import { getChatHistory, sendMessage } from './controllers/chat.controller';
@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 3001;
 const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim()).filter(Boolean) ?? [];
 app.use(cors({
   origin: allowedOrigins.length ? allowedOrigins : false,
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json({ limit: '1mb' }));
@@ -42,6 +42,7 @@ app.post('/api/upload/video', authenticateToken, authorizeRoles('superadmin', 'c
 app.get('/api/tenants', authenticateToken, authorizeRoles('superadmin', 'coord'), getTenants);
 app.get('/api/tenants/:id', authenticateToken, authorizeRoles('superadmin', 'coord'), getTenantById);
 app.post('/api/tenants', authenticateToken, authorizeRoles('superadmin'), createTenant);
+app.patch('/api/tenants/:id/status', authenticateToken, authorizeRoles('superadmin'), updateTenantStatus);
 app.get('/api/tenants/:id/users', authenticateToken, authorizeRoles('superadmin'), getTenantUsers);
 app.post('/api/tenants/:id/users', authenticateToken, authorizeRoles('superadmin'), createTenantUser);
 

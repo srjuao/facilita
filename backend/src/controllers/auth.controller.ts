@@ -19,7 +19,11 @@ export const login = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'Conta não encontrada. Use um dos e-mails de demonstração.' });
+      return res.status(401).json({ error: 'E-mail ou senha incorretos.' });
+    }
+
+    if (user.role !== 'superadmin' && user.tenant && !user.tenant.ativo) {
+      return res.status(403).json({ error: 'Esta instituição está temporariamente desativada.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -69,6 +73,9 @@ export const getMe = async (req: AuthRequest, res: Response) => {
     });
 
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    if (user.role !== 'superadmin' && user.tenant && !user.tenant.ativo) {
+      return res.status(403).json({ error: 'Esta instituição está temporariamente desativada.' });
+    }
 
     const { password: _password, ...safeUser } = user;
     return res.json(safeUser);

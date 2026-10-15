@@ -17,6 +17,8 @@ model Tenant {
   dominio   String   @unique
   admin     String
   since     String
+  ativo     Boolean  @default(true)
+  desativadoEm DateTime?
   courses   Course[]
   users     User[]
 }

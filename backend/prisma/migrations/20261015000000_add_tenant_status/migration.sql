@@ -1,0 +1,3 @@
+ALTER TABLE "Tenant"
+ADD COLUMN "ativo" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "desativadoEm" TIMESTAMP(3);

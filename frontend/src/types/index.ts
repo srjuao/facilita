@@ -37,6 +37,8 @@ export interface Tenant {
   dominio: string;
   admin: string;
   since: string;
+  ativo: boolean;
+  desativadoEm?: string | null;
   courses: Course[];
 }
 

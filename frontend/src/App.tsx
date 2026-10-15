@@ -31,9 +31,10 @@ import { SuperAdminOverview } from './pages/superadmin/SuperAdminOverview';
 import { SuperAdminTenants } from './pages/superadmin/SuperAdminTenants';
 import { SuperAdminCourses } from './pages/superadmin/SuperAdminCourses';
 import { SuperAdminFinancial } from './pages/superadmin/SuperAdminFinancial';
+import { SuperAdminLogin } from './pages/superadmin/SuperAdminLogin';
 
 export const AppContent: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [currentView, setCurrentView] = useState<string>('default');
   const [selectedLessonId, setSelectedLessonId] = useState<string>('les_1');
 
@@ -41,9 +42,10 @@ export const AppContent: React.FC = () => {
     return <div style={{ padding: '40px', textAlign: 'center' }}>Carregando FacilitaEstudos...</div>;
   }
 
-  if (!user) {
-    return <Login />;
-  }
+  const isSuperAdminPortal = window.location.hostname === 'app.facilitaestudos.com.br';
+  if (!user) return isSuperAdminPortal ? <SuperAdminLogin /> : <Login />;
+  if (isSuperAdminPortal && user.role !== 'superadmin') return <main className="portal-denied"><ShieldMessage onExit={logout} /></main>;
+  if (!isSuperAdminPortal && user.role === 'superadmin') return <SuperAdminLogin />;
 
   const handleOpenLesson = (lessonId: string) => {
     setSelectedLessonId(lessonId);
@@ -104,3 +106,5 @@ export const AppContent: React.FC = () => {
 export const App: React.FC = () => {
   return <AppContent />;
 };
+
+const ShieldMessage: React.FC<{ onExit: () => void }> = ({ onExit }) => <section className="portal-denied-card"><p className="eyebrow">ACESSO RESTRITO</p><h1>Este é o painel de superadmin.</h1><p className="muted">Use uma conta de superadmin para continuar.</p><button className="ghost" onClick={onExit}>Sair</button></section>;
