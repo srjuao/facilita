@@ -37,6 +37,7 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stro
 .login{min-height:100vh;display:grid;grid-template-columns:minmax(360px,47vw) 1fr;background:#fff}
 .login-art{background:linear-gradient(90deg,rgba(6,101,91,.91),rgba(8,125,110,.78)),url(https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=1600&h=1200&fit=crop&q=80) center/cover;color:#fff;padding:clamp(32px,5vw,76px);display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;isolation:isolate}
 .login-art::before{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(145deg,rgba(0,62,57,.56),transparent 60%)}
+.login-art-video{position:absolute;z-index:-2;inset:0;width:100%;height:100%;object-fit:cover}
 .login-art::after{content:"";position:absolute;z-index:-1;width:360px;height:118%;right:-245px;top:-9%;background:#fff;border-radius:50% 0 0 50% / 50% 0 0 50%}
 .login-art .wm{font-size:29px;color:#fff} .login-art .wm .suf{color:#9ef0df}
 .tenant-login-logo{display:block;max-width:185px;max-height:56px;object-fit:contain;object-position:left center}

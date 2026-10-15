@@ -8,6 +8,7 @@ export const Login: React.FC<{ superAdmin?: boolean }> = ({ superAdmin = false }
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [brand, setBrand] = useState<{ nome: string; logoUrl: string; loginImageUrl: string; faviconUrl: string; browserTitle: string; primaryColor: string } | null>(null);
+  const loginVideo = Boolean(brand?.loginImageUrl && /\.mp4(?:\?|$)/i.test(brand.loginImageUrl));
 
   useEffect(() => {
     fetch('/api/public/tenant-branding')
@@ -37,7 +38,8 @@ export const Login: React.FC<{ superAdmin?: boolean }> = ({ superAdmin = false }
 
   return (
     <div className="login">
-      <div className="login-art" style={brand?.loginImageUrl ? { backgroundImage: `linear-gradient(90deg, color-mix(in srgb, ${brand.primaryColor} 91%, #003e39), color-mix(in srgb, ${brand.primaryColor} 78%, #087d6e)), url("${brand.loginImageUrl}")` } : undefined}>
+      <div className="login-art" style={brand?.loginImageUrl && !loginVideo ? { backgroundImage: `linear-gradient(90deg, color-mix(in srgb, ${brand.primaryColor} 91%, #003e39), color-mix(in srgb, ${brand.primaryColor} 78%, #087d6e)), url("${brand.loginImageUrl}")` } : undefined}>
+        {loginVideo && <video className="login-art-video" src={brand?.loginImageUrl} autoPlay muted loop playsInline />}
         <div className="logo-row">
           <div>
             {brand?.logoUrl ? <img className="tenant-login-logo" src={brand.logoUrl} alt={`Logotipo ${brand.nome}`} /> : <WordMark />}

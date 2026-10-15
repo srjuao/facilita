@@ -8,7 +8,7 @@ import { getStudents, getStudentById } from './controllers/student.controller';
 import { getChatHistory, sendMessage } from './controllers/chat.controller';
 import { getExams } from './controllers/exam.controller';
 import { getLessonsByModule, getLessonById } from './controllers/lesson.controller';
-import { upload, handleVideoUpload } from './controllers/upload.controller';
+import { brandingUpload, handleBrandingUpload, upload, handleVideoUpload } from './controllers/upload.controller';
 import { authenticateToken, authorizeRoles } from './middleware/auth';
 import path from 'path';
 
@@ -30,6 +30,7 @@ app.get('/health', (_req, res) => res.status(200).json({ status: 'ok', version: 
 
 // Servir arquivos estáticos (uploads de vídeos)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Auth
 app.post('/api/auth/login', login);
@@ -38,6 +39,7 @@ app.get('/api/public/tenant-branding', getPublicTenantBranding);
 
 // Uploads
 app.post('/api/upload/video', authenticateToken, authorizeRoles('superadmin', 'coord'), upload.single('video'), handleVideoUpload);
+app.post('/api/tenants/:id/branding/upload', authenticateToken, authorizeRoles('superadmin'), brandingUpload.single('file'), handleBrandingUpload);
 
 // Tenants
 app.get('/api/tenants', authenticateToken, authorizeRoles('superadmin', 'coord'), getTenants);
