@@ -37,8 +37,8 @@ export const Login: React.FC<{ superAdmin?: boolean }> = ({ superAdmin = false }
   };
 
   return (
-    <div className="login">
-      <div className="login-art" style={brand?.loginImageUrl && !loginVideo ? { backgroundImage: `linear-gradient(90deg, color-mix(in srgb, ${brand.primaryColor} 91%, #003e39), color-mix(in srgb, ${brand.primaryColor} 78%, #087d6e)), url("${brand.loginImageUrl}")` } : undefined}>
+    <div className="login" style={brand ? { '--login-accent': brand.primaryColor } as React.CSSProperties : undefined}>
+      <div className="login-art" style={loginVideo ? { backgroundImage: 'none', backgroundColor: '#102448' } : brand?.loginImageUrl ? { backgroundImage: `linear-gradient(90deg, rgba(0,0,0,.45), rgba(0,0,0,.15)), url("${brand.loginImageUrl}")` } : undefined}>
         {loginVideo && <video className="login-art-video" src={brand?.loginImageUrl} autoPlay muted loop playsInline />}
         <div className="logo-row">
           <div>

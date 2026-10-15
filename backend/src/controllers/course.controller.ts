@@ -11,7 +11,7 @@ export const getCourseDetails = async (req: AuthRequest, res: Response) => {
       where: { id },
       include: {
         tenant: true,
-        modules: true,
+        modules: { include: { lessons: true } },
         exams: true,
         students: true
       }

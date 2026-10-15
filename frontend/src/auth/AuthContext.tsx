@@ -18,6 +18,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [loading, setLoading] = useState<boolean>(true);
+  useEffect(() => {
+    const tenant = user?.role !== 'superadmin' ? user?.tenant : undefined;
+    if (!tenant) return;
+    document.title = tenant.browserTitle || `${tenant.nome} | Facilita Estudos`;
+    let icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (!icon) { icon = document.createElement('link'); icon.rel = 'icon'; document.head.appendChild(icon); }
+    icon.href = tenant.faviconUrl || '/facilita-estudos-mark.svg';
+    if (/^#[0-9a-f]{6}$/i.test(tenant.primaryColor)) {
+      document.documentElement.style.setProperty('--accent', tenant.primaryColor);
+      document.documentElement.style.setProperty('--accent-ink', tenant.primaryColor);
+    }
+    return () => {
+      document.documentElement.style.removeProperty('--accent');
+      document.documentElement.style.removeProperty('--accent-ink');
+    };
+  }, [user]);
   
   // Matérias Concluídas salvas no LocalStorage por Aluno
   const [completedModules, setCompletedModules] = useState<string[]>(() => {

@@ -75,15 +75,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
 
   const navItems = NAVS[role] || NAVS.aluno;
   const tenantName = user.tenant?.nome || 'UNIFAN';
+  const tenantLogo = user.role !== 'superadmin' ? user.tenant?.logoUrl : '';
 
   return (
     <aside className="side">
       <div className="wm-wrap">
         <div className="wm-mini">
-          <img src="/facilita-estudos-mark.svg" alt="Facilita Estudos" />
+          <img src={tenantLogo || '/facilita-estudos-mark.svg'} alt={tenantLogo ? tenantName : 'Facilita Estudos'} onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = '/facilita-estudos-mark.svg'; }} />
         </div>
         <div className="wm-full">
-          <img src="/facilita-estudos-logo.svg" alt="Facilita Estudos" />
+          <img src={tenantLogo || '/facilita-estudos-logo.svg'} alt={tenantLogo ? tenantName : 'Facilita Estudos'} onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = '/facilita-estudos-logo.svg'; }} />
         </div>
       </div>
       <div className="tenant">{tenantName}</div>

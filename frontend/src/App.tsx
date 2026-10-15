@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from './auth/AuthContext';
 import { Login } from './pages/Login';
 import { Sidebar } from './components/Sidebar';
+import { CourseRecords } from './components/CourseRecords';
+import { ContentManager } from './pages/coord/ContentManager';
 
 // Student Pages
 import { StudentHome } from './pages/student/StudentHome';
@@ -59,6 +61,22 @@ export const AppContent: React.FC = () => {
     : currentView;
 
   const renderView = () => {
+    const records: Record<string, { title: string; kind: 'modules' | 'exams' | 'alerts' | 'live' | 'empty' }> = {
+      'co-subs': { title: 'Turmas', kind: 'empty' },
+      'co-alertas': { title: 'Alertas', kind: 'alerts' },
+      'co-live': { title: 'Alunos online', kind: 'live' },
+      'co-provas': { title: 'Provas e simulados', kind: 'exams' },
+      'co-ucs': { title: 'Períodos e matérias', kind: 'modules' },
+      'co-conteudo': { title: 'Conteúdo', kind: 'modules' },
+      'co-relatorio': { title: 'Relatórios', kind: 'empty' },
+      'al-inicio': { title: 'Meu curso', kind: 'modules' },
+      'al-periodos': { title: 'Períodos e matérias', kind: 'modules' },
+      'al-materias': { title: 'Matérias', kind: 'modules' },
+      'al-provas': { title: 'Provas', kind: 'exams' },
+      'al-flash': { title: 'Flashcards', kind: 'empty' },
+      'al-plano': { title: 'Plano de estudos', kind: 'empty' }
+    };
+    if (records[activeView]) return <CourseRecords {...records[activeView]} />;
     switch (activeView) {
       // Aluno
       case 'al-inicio': return <StudentHome onNavigate={setCurrentView} />;
@@ -80,7 +98,7 @@ export const AppContent: React.FC = () => {
       case 'co-provas': return <CoordExams />;
       case 'co-ucs': return <CoordUCs />;
       case 'co-conteudo': return <CoordContent />;
-      case 'co-gestao': return <CoordCourseManager />;
+      case 'co-gestao': return <ContentManager />;
       case 'co-setup': return <CoordUnitSetup />;
       case 'co-relatorio': return <CoordReport />;
 

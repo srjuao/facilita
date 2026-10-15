@@ -56,8 +56,8 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stro
 .field label{font-size:12px;font-weight:800;color:var(--ink-2);letter-spacing:.01em}
 .login-card input{height:48px;border-radius:999px;padding:10px 17px;background:#fff;border-color:#dce7e7;box-shadow:0 2px 7px rgba(10,64,60,.04)}
 .login-card input:focus{border-color:#159c8d;outline-color:#159c8d}
-.login-submit{border-radius:999px!important;min-height:48px;background:#0c9f8f!important;border-color:#0c9f8f!important;box-shadow:0 10px 20px -12px rgba(3,113,100,.75)}
-.login-submit:hover{background:#087f74!important}
+.login-submit{border-radius:999px!important;min-height:48px;background:var(--login-accent,#0c9f8f)!important;border-color:var(--login-accent,#0c9f8f)!important;box-shadow:0 10px 20px -12px rgba(3,113,100,.75)}
+.login-submit:hover{filter:brightness(.9)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:9px 14px;font-weight:700;font-size:13px;color:var(--ink)}
 .btn:hover{border-color:var(--accent);color:var(--accent-ink)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -81,7 +81,7 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stro
 .side .wm-mini{position:absolute;left:0;top:-2px;width:36px;height:34px;display:grid;place-items:center;transition:opacity .12s}
 .side .wm-full{display:flex;align-items:center;gap:8px}
 .side .wm-full .wm{padding:0}
-.side .wm-mini img{width:34px;height:34px}.side .wm-full img{width:188px;height:auto;display:block}
+.side .wm-mini img{width:34px;height:34px;object-fit:contain}.side .wm-full img{width:188px;height:40px;object-fit:contain;object-position:left;display:block}
 .side:hover .wm-mini,.side:focus-within .wm-mini{opacity:0}
 .side .sec{height:14px;margin:14px 10px 4px}
 @media (prefers-reduced-motion:reduce){.side,.side *{transition:none!important}}

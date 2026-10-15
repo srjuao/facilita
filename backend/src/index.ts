@@ -9,6 +9,7 @@ import { getChatHistory, sendMessage } from './controllers/chat.controller';
 import { getExams } from './controllers/exam.controller';
 import { getLessonsByModule, getLessonById } from './controllers/lesson.controller';
 import { createCoordCourse, createCoordTeacher, getCoordCourses } from './controllers/coord.controller';
+import { createModule, createLesson } from './controllers/content.controller';
 import { brandingUpload, handleBrandingUpload, upload, handleVideoUpload } from './controllers/upload.controller';
 import { authenticateToken, authorizeRoles } from './middleware/auth';
 import path from 'path';
@@ -58,6 +59,8 @@ app.post('/api/coord/teachers', authenticateToken, authorizeRoles('coord'), crea
 
 // Courses
 app.get('/api/courses/:id', authenticateToken, getCourseDetails);
+app.post('/api/modules', authenticateToken, authorizeRoles('coord', 'professor'), createModule);
+app.post('/api/modules/:id/lessons', authenticateToken, authorizeRoles('coord', 'professor'), createLesson);
 
 // Lessons
 app.get('/api/lessons', authenticateToken, getLessonsByModule);
@@ -77,7 +80,8 @@ app.get('/api/exams', authenticateToken, getExams);
 
 // Avoid Express' default HTML errors for invalid uploads and oversized requests.
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  if (err.name === 'MulterError') return res.status(400).json({ error: 'Upload inválido ou maior que 100 MB.' });
+  if (err.name === 'MulterError') return res.status(400).json({ error: 'Upload inválido ou acima do limite. Para identidade, envie arquivos de até 50 MB.' });
+  if (err.message === 'Arquivo de identidade inválido.') return res.status(400).json({ error: 'Formato não permitido. Envie PNG, JPG, WebP ou SVG para logos e ícones; PNG, JPG, WebP ou MP4 para o login.' });
   if (err.message === 'Formato de arquivo inválido. Apenas vídeos são permitidos.') return res.status(400).json({ error: err.message });
   return res.status(500).json({ error: 'Erro interno no servidor.' });
 });

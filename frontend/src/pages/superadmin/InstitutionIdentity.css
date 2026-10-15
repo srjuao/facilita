@@ -1,0 +1,24 @@
+.institution-settings-page{padding:0;overflow:hidden}
+.institution-identity{display:grid;gap:22px;margin:24px 0}
+.institution-identity h2{margin:6px 0 10px;font-size:24px}
+.identity-fields{border:0;padding:0;margin:0;min-width:0;display:grid;gap:24px}
+.identity-assets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.identity-upload{display:grid;align-content:start;gap:9px;padding:16px;border:1px solid var(--line);border-radius:12px;min-width:0}
+.identity-upload small{color:var(--muted);overflow-wrap:anywhere}
+.identity-upload input{max-width:100%;font:inherit;font-size:12px}
+.identity-preview{height:170px;display:grid;place-items:center;background:var(--paper-2);border:1px dashed var(--line);border-radius:8px;overflow:hidden}
+.identity-preview img,.identity-preview video{width:100%;height:100%;object-fit:contain;min-height:0}
+.identity-preview span{font-size:12px;color:var(--muted)}
+.identity-preview.favicon-preview img{width:48px;height:48px}
+.identity-options{display:grid;grid-template-columns:2fr 1fr;gap:18px}
+.identity-options label{display:grid;gap:8px;font-size:13px;font-weight:700}
+.identity-options input{border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit;min-width:0;width:100%;box-sizing:border-box}
+.identity-color{display:flex;align-items:center;gap:12px}
+.identity-color input[type=color]{width:64px;height:44px;padding:4px;flex:none}
+.identity-sidebar-preview{display:grid;gap:12px;background:var(--side-bg,#e3eefb);border-radius:12px;padding:24px;max-width:280px}
+.identity-sidebar-preview img{width:100%;height:65px;object-fit:contain;object-position:left}
+.identity-sidebar-preview small{color:var(--muted);text-transform:uppercase}
+.identity-save{display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid var(--line);padding-top:20px}
+.identity-save span{font-size:13px;color:var(--muted)}
+.identity-success{padding:14px;border:1px solid #bce9d0;border-radius:10px;background:var(--good-soft);color:#14643e}
+@media(max-width:820px){.identity-assets,.identity-options{grid-template-columns:1fr}.identity-save{align-items:stretch;flex-direction:column}.institution-identity h2{font-size:21px}}
