@@ -174,7 +174,8 @@ export const createTenantUser = async (req: AuthRequest, res: Response) => {
     const normalizedEmail = email.trim().toLowerCase();
     const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existingUser?.tenantId && existingUser.tenantId !== tenant.id) {
-      return res.status(409).json({ error: 'Essa conta já está vinculada a outra faculdade.' });
+      const currentTenant = await prisma.tenant.findUnique({ where: { id: existingUser.tenantId }, select: { nome: true } });
+      return res.status(409).json({ error: `Esta conta já está vinculada à unidade ${currentTenant?.nome || 'existente'}.` });
     }
     if (!existingUser && (!password || !hasValidPassword(password))) {
       return res.status(400).json({ error: 'Para uma nova conta, use senha com ao menos 8 caracteres, letra, número e caractere especial.' });
