@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { WordMark } from '../components/WordMark';
 
-export const Login: React.FC = () => {
+export const Login: React.FC<{ superAdmin?: boolean }> = ({ superAdmin = false }) => {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,18 +42,18 @@ export const Login: React.FC = () => {
           <div>
             {brand?.logoUrl ? <img className="tenant-login-logo" src={brand.logoUrl} alt={`Logotipo ${brand.nome}`} /> : <WordMark />}
             <div style={{ fontSize: '12px', letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,.78)', marginTop: '2px' }}>
-              {brand ? brand.nome : 'Plataforma multi-instituição'}
+              {brand ? brand.nome : superAdmin ? 'Painel de superadmin' : 'Plataforma multi-instituição'}
             </div>
           </div>
         </div>
         <div>
-          <div className="login-art-kicker">{brand ? 'Conhecimento que conecta' : 'Inteligência que aproxima'}</div>
-          <h1>{brand ? `Uma experiência feita para ${brand.nome}.` : 'O espaço certo para cada jornada acadêmica.'}</h1>
+          <div className="login-art-kicker">{brand ? 'Conhecimento que conecta' : superAdmin ? 'Operação da plataforma' : 'Inteligência que aproxima'}</div>
+          <h1>{brand ? `Uma experiência feita para ${brand.nome}.` : superAdmin ? 'A visão central para cada instituição.' : 'O espaço certo para cada jornada acadêmica.'}</h1>
           <p className="lead">
-            Uma plataforma para a instituição, coordenação e alunos seguirem juntos — com clareza, contexto e evolução em cada etapa.
+            {superAdmin ? 'Gerencie faculdades, acessos, domínios e identidade de cada unidade com segurança e contexto.' : 'Uma plataforma para a instituição, coordenação e alunos seguirem juntos — com clareza, contexto e evolução em cada etapa.'}
           </p>
           <div className="brand-list">
-            {['Medicina', 'Odontologia', 'Enfermagem', 'Direito', 'Psicologia', 'Fisioterapia'].map((c) => (
+            {(superAdmin ? ['Faculdades', 'Acessos', 'Domínios', 'Identidade'] : ['Medicina', 'Odontologia', 'Enfermagem', 'Direito', 'Psicologia', 'Fisioterapia']).map((c) => (
               <span key={c}>{c}</span>
             ))}
           </div>
@@ -65,12 +65,12 @@ export const Login: React.FC = () => {
 
       <div className="login-form">
         <form className="login-card" onSubmit={handleSubmit}>
-          <div className="eyebrow">Entrar</div>
-          <h2 style={{ marginTop: '6px' }}>Bem-vindo de volta</h2>
-          <p className="login-subtitle">Acesse sua instituição para continuar.</p>
+          <div className="eyebrow">{superAdmin ? 'Painel de superadmin' : 'Entrar'}</div>
+          <h2 style={{ marginTop: '6px' }}>{superAdmin ? 'Acesse a operação' : 'Bem-vindo de volta'}</h2>
+          <p className="login-subtitle">{superAdmin ? 'Use suas credenciais exclusivas para gerenciar a plataforma.' : 'Acesse sua instituição para continuar.'}</p>
           
           <div className="field">
-            <label htmlFor="email">E-mail institucional</label>
+            <label htmlFor="email">{superAdmin ? 'E-mail de superadmin' : 'E-mail institucional'}</label>
             <input
               id="email"
               type="email"
@@ -99,7 +99,7 @@ export const Login: React.FC = () => {
           </div>
 
           <button className="btn primary wide login-submit" style={{ marginTop: '18px' }} type="submit">
-            Acessar plataforma
+            {superAdmin ? 'Acessar painel' : 'Acessar plataforma'}
           </button>
 
         </form>
