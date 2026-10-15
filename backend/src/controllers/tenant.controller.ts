@@ -15,6 +15,8 @@ const toSubdomain = (value: string) => value
   .replace(/[^a-z0-9]+/g, '-')
   .replace(/^-+|-+$/g, '');
 
+const hasValidPassword = (value: string) => value.length >= 8 && /[A-Za-z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9]/.test(value);
+
 export const getTenants = async (req: AuthRequest, res: Response) => {
   try {
     if (req.user?.role !== 'superadmin' && !req.user?.tenantId) {
@@ -54,8 +56,8 @@ export const createTenant = async (req: AuthRequest, res: Response) => {
     if (!nome?.trim() || !full?.trim() || !cidade?.trim() || !subdomain?.trim() || !admin?.trim() || !adminEmail?.trim() || !adminPassword) {
       return res.status(400).json({ error: 'Preencha os dados da faculdade e do administrador responsável.' });
     }
-    if (!/^\S+@\S+\.\S+$/.test(adminEmail.trim()) || adminPassword.length < 12) {
-      return res.status(400).json({ error: 'Use um e-mail válido e uma senha de pelo menos 12 caracteres.' });
+    if (!/^\S+@\S+\.\S+$/.test(adminEmail.trim()) || !hasValidPassword(adminPassword)) {
+      return res.status(400).json({ error: 'Use um e-mail válido e uma senha com ao menos 8 caracteres, letra, número e caractere especial.' });
     }
 
     const slug = toSubdomain(subdomain);
@@ -174,8 +176,8 @@ export const createTenantUser = async (req: AuthRequest, res: Response) => {
     if (existingUser?.tenantId && existingUser.tenantId !== tenant.id) {
       return res.status(409).json({ error: 'Essa conta já está vinculada a outra faculdade.' });
     }
-    if (!existingUser && (!password || password.length < 12)) {
-      return res.status(400).json({ error: 'Para uma nova conta, defina uma senha de ao menos 12 caracteres.' });
+    if (!existingUser && (!password || !hasValidPassword(password))) {
+      return res.status(400).json({ error: 'Para uma nova conta, use senha com ao menos 8 caracteres, letra, número e caractere especial.' });
     }
     const safeSelect = { id: true, nome: true, email: true, papel: true, role: true, photo: true, courseId: true } as const;
     const user = existingUser
