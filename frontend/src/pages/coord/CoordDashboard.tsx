@@ -8,16 +8,30 @@ import { Mail, AlertTriangle, CheckCircle, Clock, BarChart3, Layers } from 'luci
 export const CoordDashboard: React.FC = () => {
   const { user } = useAuth();
   const [course, setCourse] = useState<any>(null);
+  const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading');
+
+  const loadCourse = async () => {
+    if (!user?.courseId) {
+      setStatus('error');
+      return;
+    }
+    setStatus('loading');
+    try {
+      const response = await api.get(`/courses/${user.courseId}`);
+      setCourse(response.data);
+      setStatus('ready');
+    } catch {
+      setStatus('error');
+    }
+  };
 
   useEffect(() => {
-    if (user?.courseId) {
-      api.get(`/courses/${user.courseId}`)
-        .then(res => setCourse(res.data))
-        .catch(err => console.error(err));
-    }
+    void loadCourse();
   }, [user]);
 
-  if (!course) return <div style={{ padding: '40px', textAlign: 'center' }}>Carregando Dashboard da Coordenação...</div>;
+  if (status === 'loading') return <div style={{ padding: '40px', textAlign: 'center' }}>Carregando Dashboard da Coordenação...</div>;
+  if (status === 'error') return <section className="dashboard-error" role="alert"><p className="eyebrow">ACESSO AINDA NÃO CONFIGURADO</p><h1>Não foi possível abrir o dashboard.</h1><p>{user?.courseId ? 'Não conseguimos carregar os dados do curso agora. Tente novamente; se persistir, avise o administrador da plataforma.' : 'Sua conta de coordenação ainda não está vinculada a um curso. Peça ao superadmin para cadastrar um curso nesta unidade e associar sua conta a ele.'}</p>{user?.courseId && <button className="primary" onClick={() => void loadCourse()}>Tentar novamente</button>}</section>;
+  if (!course) return null;
 
   const alunos = course.students || [];
   const altoRisco = alunos.filter((s: any) => s.risco === 'alto');
