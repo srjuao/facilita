@@ -173,6 +173,35 @@ export const getTenantUsers = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const updateTenantUser = async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'superadmin') return res.status(403).json({ error: 'Acesso exclusivo do superadmin.' });
+  const { nome, email, role, courseId, password } = req.body || {};
+  if (typeof nome !== 'string' || !nome.trim() || nome.length > 120 || typeof email !== 'string' || !/^\S+@\S+\.\S+$/.test(email) || email.length > 254 || !['coord', 'professor', 'aluno'].includes(role)) return res.status(400).json({ error: 'Preencha nome, e-mail válido e perfil.' });
+  if (courseId !== null && courseId !== '' && typeof courseId !== 'string') return res.status(400).json({ error: 'Selecione um curso válido desta instituição.' });
+  if (password !== undefined && password !== '' && (typeof password !== 'string' || !hasValidPassword(password) || Buffer.byteLength(password, 'utf8') > 72)) return res.status(400).json({ error: 'Use senha de 8 a 72 caracteres, com letra, número e caractere especial.' });
+  try {
+    const existing = await prisma.user.findFirst({ where: { id: req.params.userId, tenantId: req.params.id, role: { not: 'superadmin' } } });
+    if (!existing) return res.status(404).json({ error: 'Usuário não encontrado nesta instituição ou conta global não editável nesta tela.' });
+    const targetCourseId = courseId === undefined ? existing.courseId : courseId || null;
+    if (targetCourseId && !await prisma.course.findFirst({ where: { id: targetCourseId, tenantId: req.params.id }, select: { id: true } })) return res.status(400).json({ error: 'O curso selecionado não pertence a esta instituição.' });
+    if (existing.studentId && role === 'aluno' && !targetCourseId) return res.status(400).json({ error: 'Selecione um curso para manter o vínculo acadêmico deste aluno.' });
+    const hash = password ? await bcrypt.hash(password, 12) : undefined;
+    const updated = await prisma.$transaction(async tx => {
+      const account = await tx.user.update({
+        where: { id: existing.id, tenantId: req.params.id, role: { not: 'superadmin' } },
+        data: { nome: nome.trim(), email: email.trim().toLowerCase(), role, courseId: targetCourseId, papel: role === 'coord' ? 'Coordenação' : role === 'professor' ? 'Professor' : 'Aluno', ...(hash ? { password: hash } : {}) },
+        select: { id: true, nome: true, email: true, papel: true, role: true, courseId: true }
+      });
+      if (existing.studentId) await tx.student.update({ where: { id: existing.studentId }, data: { nome: nome.trim(), ...(targetCourseId ? { courseId: targetCourseId } : {}) } });
+      return account;
+    });
+    return res.json(updated);
+  } catch (error: any) {
+    if (error.code === 'P2002') return res.status(409).json({ error: 'Este e-mail já está em uso por outra conta.' });
+    return res.status(500).json({ error: 'Não foi possível salvar o usuário.' });
+  }
+};
+
 export const createTenantUser = async (req: AuthRequest, res: Response) => {
   try {
     const { nome, email, role, password } = req.body as Record<string, string>;
@@ -184,6 +213,7 @@ export const createTenantUser = async (req: AuthRequest, res: Response) => {
     if (!tenant.ativo) return res.status(409).json({ error: 'Reative a faculdade antes de vincular usuários.' });
     const normalizedEmail = email.trim().toLowerCase();
     const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (existingUser?.role === 'superadmin') return res.status(409).json({ error: 'Contas globais de superadmin não podem ser vinculadas como usuários da instituição.' });
     if (existingUser?.tenantId && existingUser.tenantId !== tenant.id) {
       const currentTenant = await prisma.tenant.findUnique({ where: { id: existingUser.tenantId }, select: { nome: true } });
       return res.status(409).json({ error: `Esta conta já está vinculada à unidade ${currentTenant?.nome || 'existente'}.` });

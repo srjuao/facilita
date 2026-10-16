@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { login, getMe, changePassword } from './controllers/auth.controller';
-import { createTenant, createTenantUser, getPublicTenantBranding, getTenants, getTenantById, getTenantUsers, updateTenantBranding, updateTenantStatus } from './controllers/tenant.controller';
+import { createTenant, createTenantUser, getPublicTenantBranding, getTenants, getTenantById, getTenantUsers, updateTenantBranding, updateTenantStatus, updateTenantUser } from './controllers/tenant.controller';
 import { getCourseDetails } from './controllers/course.controller';
 import { createStudent, getStudents, getStudentById } from './controllers/student.controller';
 import { getChatHistory, sendMessage } from './controllers/chat.controller';
@@ -51,6 +51,7 @@ app.post('/api/tenants', authenticateToken, authorizeRoles('superadmin'), create
 app.patch('/api/tenants/:id/status', authenticateToken, authorizeRoles('superadmin'), updateTenantStatus);
 app.patch('/api/tenants/:id/branding', authenticateToken, authorizeRoles('superadmin'), updateTenantBranding);
 app.get('/api/tenants/:id/users', authenticateToken, authorizeRoles('superadmin'), getTenantUsers);
+app.patch('/api/tenants/:id/users/:userId', authenticateToken, authorizeRoles('superadmin'), updateTenantUser);
 app.post('/api/tenants/:id/users', authenticateToken, authorizeRoles('superadmin'), createTenantUser);
 
 // Gestão da própria unidade pela coordenação.
