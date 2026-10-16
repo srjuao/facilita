@@ -18,6 +18,9 @@ import { featureGate } from './controllers/plan-access';
 import { streamLessonMedia } from './controllers/media-access';
 import { institutionRouter } from './institution/router';
 import { commerceRouter } from './commerce/router';
+import { staffRouter } from './institution/staff';
+import { assessmentRouter } from './assessments/router';
+import { contentManagementRouter } from './institution/content-management';
 import { requireInstitutionPermission, requireInstitutionSession } from './institution/policy';
 import path from 'path';
 
@@ -46,10 +49,13 @@ app.get('/api/media/lessons/:id', streamLessonMedia);
 // Auth
 app.post('/api/auth/login', login);
 app.get('/api/auth/me', authenticateToken, getMe);
-app.patch('/api/auth/password', authenticateToken, authorizeRoles('superadmin'), changePassword);
-app.patch('/api/auth/profile', authenticateToken, authorizeRoles('superadmin'), updateProfile);
+app.patch('/api/auth/password', authenticateToken, requireInstitutionSession, authorizeRoles('superadmin'), changePassword);
+app.patch('/api/auth/profile', authenticateToken, requireInstitutionSession, authorizeRoles('superadmin'), updateProfile);
 app.use('/api/institution', authenticateToken, institutionRouter);
 app.use('/api/institution-commerce', authenticateToken, commerceRouter);
+app.use('/api/institution-staff', authenticateToken, staffRouter);
+app.use('/api/assessments', authenticateToken, assessmentRouter);
+app.use('/api/content-management', authenticateToken, contentManagementRouter);
 app.get('/api/public/tenant-branding', getPublicTenantBranding);
 app.post('/api/public/leads', createPublicLead);
 app.get('/api/public/pricing', getPublicPricing);
@@ -93,7 +99,7 @@ app.get('/api/lessons/:id', authenticateToken, featureGate('videoAulas'), getLes
 
 // Students
 app.get('/api/students', authenticateToken, requireInstitutionSession, getStudents);
-app.post('/api/students', authenticateToken, requireInstitutionPermission('students.manage'), authorizeRoles('coord', 'professor'), createStudent);
+app.post('/api/students', authenticateToken, requireInstitutionPermission('students.manage'), authorizeRoles('coord', 'professor', 'staff'), createStudent);
 app.get('/api/students/:id', authenticateToken, requireInstitutionSession, getStudentById);
 
 // Chat IA

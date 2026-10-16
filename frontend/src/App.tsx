@@ -30,6 +30,8 @@ import { CoordCourseManager } from './pages/coord/CoordCourseManager';
 import { CoordUnitSetup } from './pages/coord/CoordUnitSetup';
 import { InstitutionWorkspace } from './pages/institution/InstitutionWorkspace';
 import { PaidCourses } from './pages/institution/PaidCourses';
+import { StaffAccounts } from './pages/institution/StaffAccounts';
+import { Assessments } from './pages/institution/Assessments';
 
 // SuperAdmin Pages
 import { SuperAdminOverview } from './pages/superadmin/SuperAdminOverview';
@@ -65,17 +67,20 @@ export const AppContent: React.FC = () => {
 
   // Roteamento padrão por papel caso não haja view selecionada
   const activeView = currentView === 'default'
-    ? user.role === 'superadmin' ? 'sa-overview' : user.role === 'coord' ? 'co-dash' : user.role === 'professor' ? 'co-notices' : 'al-inicio'
+    ? user.role === 'superadmin' ? 'sa-overview' : user.role === 'coord' ? 'co-dash' : ['professor', 'staff'].includes(user.role) ? 'co-notices' : 'al-inicio'
     : currentView;
 
   const renderView = () => {
+    if (activeView === 'co-staff') return <StaffAccounts />;
     if (activeView === 'co-sales' || activeView === 'al-store') return <PaidCourses onOpenCourse={courseId => { setSelectedPaidCourseId(courseId); setCurrentView('al-paid-course'); }} />;
-    if (activeView === 'al-paid-course') return <CourseRecords title="Conteúdo do curso" kind="modules" courseId={selectedPaidCourseId} onOpenLesson={handleOpenLesson} onShowCatalog={() => setCurrentView('al-store')} />;
+    if (activeView === 'al-paid-course') return <CourseRecords title="Conteúdo do curso" kind="modules" courseId={selectedPaidCourseId} onOpenLesson={handleOpenLesson} onShowCatalog={() => setCurrentView('al-store')} onOpenExams={user.tenant?.plan?.provas === false ? undefined : () => setCurrentView('al-course-exams')} />;
+    if (activeView === 'al-course-exams') return <Assessments courseId={selectedPaidCourseId} />;
     const sections = { 'co-notices': 'notices', 'co-subs': 'classes', 'co-team': 'team', 'co-chat': 'chat', 'al-notices': 'notices', 'al-classes': 'classes', 'al-chat': 'chat' } as const;
     if (activeView in sections) return <InstitutionWorkspace section={sections[activeView as keyof typeof sections]} />;
-    if (user.role === 'professor' && ((activeView === 'co-gestao' && !user.permissions?.includes('content.manage')) || (activeView === 'co-alunos' && !user.permissions?.includes('students.manage')))) return <section className="unit-setup"><div className="card"><h1>Acesso não autorizado</h1><p>A coordenação ainda não liberou esta função para sua conta.</p></div></section>;
+    if (['professor', 'staff'].includes(user.role) && ((activeView === 'co-gestao' && !user.permissions?.includes('content.manage')) || (activeView === 'co-alunos' && !user.permissions?.includes('students.manage')))) return <section className="unit-setup"><div className="card"><h1>Acesso não autorizado</h1><p>A coordenação ainda não liberou esta função para sua conta.</p></div></section>;
     const plan = user.role !== 'superadmin' ? user.tenant?.plan : null;
     if ((activeView === 'al-ia' && plan?.ia === false) || (['al-provas', 'co-provas'].includes(activeView) && plan?.provas === false) || (activeView === 'al-aula' && plan?.videoAulas === false)) return <section className="unit-setup"><div className="card"><h1>Recurso não incluído no plano</h1><p>Consulte a coordenação da instituição sobre os recursos contratados.</p><button className="ghost" onClick={() => setCurrentView('default')}>Voltar ao início</button></div></section>;
+    if (['al-provas', 'co-provas'].includes(activeView)) return <Assessments />;
     const records: Record<string, { title: string; kind: 'modules' | 'exams' | 'alerts' | 'live' | 'empty' }> = {
       'co-subs': { title: 'Turmas', kind: 'empty' },
       'co-alertas': { title: 'Alertas', kind: 'alerts' },

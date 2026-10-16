@@ -15,8 +15,8 @@ export const getCourseDetails = async (req: AuthRequest, res: Response) => {
       where: { id },
       include: {
         tenant: true,
-        modules: { include: { lessons: true } },
-        exams: { include: { _count: { select: { questions: true } } } },
+        modules: { where: { archivedAt: null, OR: [{ periodId: null }, { period: { archivedAt: null } }] }, include: { lessons: { where: { archivedAt: null } } } },
+        exams: { where: { archivedAt: null }, include: { _count: { select: { questions: { where: { archivedAt: null } } } } } },
         students: true
       }
     });
@@ -29,7 +29,7 @@ export const getCourseDetails = async (req: AuthRequest, res: Response) => {
     const { students, ...courseData } = course;
     const response: Record<string, unknown> = {
       ...courseData,
-      exams: plan && !plan.provas ? [] : course.exams,
+      exams: plan && !plan.provas ? [] : course.exams.filter(exam => user.role !== 'aluno' || exam.published),
       modules: course.modules.map(m => ({
         ...m,
         lessons: plan && !plan.videoAulas ? [] : m.lessons.map(lesson => signedLesson(lesson, user.id)),

@@ -19,19 +19,16 @@ export const getExams = async (req: AuthRequest, res: Response) => {
       if (!course) return res.status(404).json({ error: 'Curso não encontrado.' });
       await assertCourseContentAccess(account, course);
     }
+    if (account.role === 'professor' && !account.permissions.includes('exams.manage')) return res.status(403).json({ error: 'Sem permissão para avaliações.' });
     const exams = await prisma.exam.findMany({
-      where: scopedCourseId ? { courseId: scopedCourseId } : undefined,
-      include: { questions: true }
+      where: { ...(scopedCourseId ? { courseId: scopedCourseId } : {}), archivedAt: null,
+        ...(account.role === 'aluno' ? { published: true } : {}) },
+      select: { id: true, nome: true, data: true, published: true, maxAttempts: true, passingScore: true, version: true,
+        _count: { select: { questions: { where: { archivedAt: null } } } } }
     });
-
-    return res.json(exams.map(e => ({
-      ...e,
-      questions: e.questions.map(q => ({
-        ...q,
-        alts: JSON.parse(q.alts || '[]'),
-        dist: JSON.parse(q.dist || '[]')
-      }))
-    })));
+    // Legacy readers receive metadata only: never spread question answers or explanations.
+    return res.json(exams.map(e => ({ id: e.id, nome: e.nome, data: e.data, published: e.published, maxAttempts: e.maxAttempts,
+      passingScore: e.passingScore, version: e.version, q: e._count.questions, _count: e._count })));
   } catch (error) {
     if (error instanceof PaidCourseError) return res.status(error.status).json({ error: error.message, code: error.code, courseId: error.courseId, priceCents: error.priceCents });
     if (error instanceof PlanError) return res.status(error.status).json({ error: error.message });

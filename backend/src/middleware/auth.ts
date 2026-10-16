@@ -21,9 +21,9 @@ export interface AuthRequest extends Request {
   };
 }
 
-export type UserRole = 'superadmin' | 'coord' | 'professor' | 'aluno';
+export type UserRole = 'superadmin' | 'coord' | 'professor' | 'aluno' | 'staff';
 
-const USER_ROLES: UserRole[] = ['superadmin', 'coord', 'professor', 'aluno'];
+const USER_ROLES: UserRole[] = ['superadmin', 'coord', 'professor', 'aluno', 'staff'];
 
 export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];

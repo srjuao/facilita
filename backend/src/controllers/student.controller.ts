@@ -11,7 +11,7 @@ const validPassword = (value: string) => value.length >= 8 && /[A-Za-z]/.test(va
 export const createStudent = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user?.tenantId) return res.status(403).json({ error: 'Conta sem instituição associada.' });
-    const targetCourseId = req.user.role === 'coord' && typeof req.body.courseId === 'string' ? req.body.courseId : req.user.courseId;
+    const targetCourseId = ['coord', 'staff'].includes(req.user.role) && typeof req.body.courseId === 'string' ? req.body.courseId : req.user.courseId;
     if (!targetCourseId || !await prisma.course.findFirst({ where: { id: targetCourseId, tenantId: req.user.tenantId } })) return res.status(400).json({ error: 'Selecione um curso da sua instituição.' });
     const { nome, matricula, email, password } = req.body as Record<string, string>;
     if (!nome?.trim() || !matricula?.trim() || !email?.trim() || !validPassword(password || '')) return res.status(400).json({ error: 'Preencha matrícula, nome, e-mail e uma senha válida.' });
@@ -22,7 +22,7 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
     if (duplicateRegistration) return res.status(409).json({ error: 'Esta matrícula já está cadastrada neste curso.' });
     const result = await prisma.$transaction(async tx => {
       const account = await tx.user.findUnique({ where: { id: req.user!.id }, include: { course: true } });
-      if (!account?.tenantId || !['coord', 'professor'].includes(account.role) || account.tenantId !== req.user!.tenantId || (account.role === 'professor' && (!account.permissions.includes('students.manage') || account.courseId !== targetCourseId || account.course?.tenantId !== account.tenantId))) throw new PlanError(403, 'Seu vínculo acadêmico ou suas permissões mudaram. Entre novamente.');
+      if (!account?.tenantId || account.disabledAt || !['coord', 'professor', 'staff'].includes(account.role) || account.tenantId !== req.user!.tenantId || (account.role === 'staff' && !account.permissions.includes('students.manage')) || (account.role === 'professor' && (!account.permissions.includes('students.manage') || account.courseId !== targetCourseId || account.course?.tenantId !== account.tenantId))) throw new PlanError(403, 'Seu vínculo acadêmico ou suas permissões mudaram. Entre novamente.');
       await enforceStudentCapacity(tx, account.tenantId);
       const student = await tx.student.create({ data: { nome: nome.trim(), sub: matricula.trim(), progresso: 0, nota: 0, tempo: 0, ultimo: 0, risco: 'baixo', atividade: '[]', weeks: '[]', notas: '{}', tempos: '{}', courseId: targetCourseId } });
       await tx.user.create({ data: { nome: nome.trim(), email: normalizedEmail, password: await bcrypt.hash(password, 12), papel: 'Aluno', role: 'aluno', tenantId: req.user!.tenantId!, courseId: targetCourseId, studentId: student.id } });
@@ -38,7 +38,7 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
 
 export const getStudents = async (req: AuthRequest, res: Response) => {
   try {
-    if (req.user?.role === 'professor' && !req.user.permissions?.includes('students.manage')) return res.status(403).json({ error: 'A coordenação não liberou a gestão de alunos para sua conta.' });
+    if (['professor', 'staff'].includes(req.user?.role || '') && !req.user?.permissions?.includes('students.manage')) return res.status(403).json({ error: 'A coordenação não liberou a gestão de alunos para sua conta.' });
     const { courseId, risco, sub, search } = req.query;
 
     const where: any = {};
@@ -46,7 +46,7 @@ export const getStudents = async (req: AuthRequest, res: Response) => {
     if (req.user?.role === 'aluno') {
       if (!req.user.studentId) return res.status(403).json({ error: 'Perfil de aluno inválido.' });
       where.id = req.user.studentId;
-    } else if (req.user?.role === 'coord') {
+    } else if (req.user && ['coord', 'staff'].includes(req.user.role)) {
       where.course = { tenantId: req.user.tenantId };
       if (requestedCourseId) where.courseId = requestedCourseId;
     } else if (req.user?.role !== 'superadmin') {
@@ -76,7 +76,7 @@ export const getStudents = async (req: AuthRequest, res: Response) => {
 
 export const getStudentById = async (req: AuthRequest, res: Response) => {
   try {
-    if (req.user?.role === 'professor' && !req.user.permissions?.includes('students.manage')) return res.status(403).json({ error: 'A coordenação não liberou a gestão de alunos para sua conta.' });
+    if (['professor', 'staff'].includes(req.user?.role || '') && !req.user?.permissions?.includes('students.manage')) return res.status(403).json({ error: 'A coordenação não liberou a gestão de alunos para sua conta.' });
     const { id } = req.params;
     const student = await prisma.student.findUnique({
       where: { id: Number(id) },
@@ -85,7 +85,7 @@ export const getStudentById = async (req: AuthRequest, res: Response) => {
 
     if (!student) return res.status(404).json({ error: 'Estudante não encontrado' });
     if (req.user?.role === 'aluno' && req.user.studentId !== student.id) return res.status(403).json({ error: 'Acesso negado a este estudante.' });
-    if (req.user?.role !== 'superadmin' && !(req.user?.role === 'coord' && student.course.tenantId === req.user.tenantId) && !canAccessCourse(req.user, student.courseId)) return res.status(403).json({ error: 'Acesso negado a este curso.' });
+    if (req.user?.role !== 'superadmin' && !(req.user && ['coord', 'staff'].includes(req.user.role) && student.course.tenantId === req.user.tenantId) && !canAccessCourse(req.user, student.courseId)) return res.status(403).json({ error: 'Acesso negado a este curso.' });
 
     return res.json({
       ...student,

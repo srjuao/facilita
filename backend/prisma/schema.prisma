@@ -130,6 +130,8 @@ model Course {
 }
 
 model User {
+  disabledAt DateTime?
+  examAttempts ExamAttempt[]
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
@@ -199,6 +201,8 @@ model CourseAccessRequest {
 }
 
 model Department {
+  archivedAt DateTime?
+  updatedAt DateTime @default(now()) @updatedAt
   id String @id @default(cuid())
   tenantId String
   nome String
@@ -208,6 +212,8 @@ model Department {
 }
 
 model AcademicPeriod {
+  archivedAt DateTime?
+  updatedAt DateTime @default(now()) @updatedAt
   id String @id @default(cuid())
   tenantId String
   courseId String
@@ -219,6 +225,8 @@ model AcademicPeriod {
 }
 
 model Announcement {
+  archivedAt DateTime?
+  updatedAt DateTime @default(now()) @updatedAt
   id String @id @default(cuid())
   tenantId String
   title String
@@ -231,6 +239,8 @@ model Announcement {
 }
 
 model ClassGroup {
+  archivedAt DateTime?
+  updatedAt DateTime @default(now()) @updatedAt
   id String @id @default(cuid())
   tenantId String
   courseId String
@@ -242,6 +252,8 @@ model ClassGroup {
 }
 
 model Conversation {
+  archivedAt DateTime?
+  updatedAt DateTime @default(now()) @updatedAt
   id String @id @default(cuid())
   tenantId String
   nome String
@@ -290,6 +302,8 @@ model Student {
 }
 
 model Module {
+  archivedAt DateTime?
+  updatedAt DateTime @default(now()) @updatedAt
   id       String   @id
   nome     String
   desc     String
@@ -305,6 +319,8 @@ model Module {
 }
 
 model Lesson {
+  archivedAt DateTime?
+  updatedAt DateTime @default(now()) @updatedAt
   id          String   @id @default(cuid())
   titulo      String
   desc        String
@@ -317,6 +333,12 @@ model Lesson {
 }
 
 model Exam {
+  published Boolean @default(false)
+  archivedAt DateTime?
+  maxAttempts Int @default(1)
+  passingScore Float @default(7)
+  version Int @default(0)
+  attempts ExamAttempt[]
   id       String     @id @default(cuid())
   nome     String
   data     String
@@ -332,6 +354,7 @@ model Exam {
 }
 
 model Question {
+  archivedAt DateTime?
   id         Int    @id @default(autoincrement())
   topic      String
   enunciado  String
@@ -352,4 +375,23 @@ model ChatMessage {
   createdAt DateTime @default(now())
   studentId Int
   student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model ExamAttempt {
+  id String @id @default(cuid())
+  submissionId String
+  examId String
+  userId String
+  number Int
+  score Float
+  correct Int
+  total Int
+  passed Boolean
+  snapshot Json
+  createdAt DateTime @default(now())
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  @@unique([examId, userId, number])
+  @@unique([userId, submissionId])
+  @@index([userId, createdAt])
 }

@@ -41,6 +41,8 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'E-mail ou senha incorretos.' });
     }
 
+    if (user.disabledAt) return res.status(403).json({ error: 'Esta conta está desativada.' });
+
     if (user.role !== 'superadmin' && user.tenant && !user.tenant.ativo) {
       return res.status(403).json({ error: 'Esta instituição está temporariamente desativada.' });
     }
@@ -94,6 +96,7 @@ export const getMe = async (req: AuthRequest, res: Response) => {
     });
 
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    if (user.disabledAt) return res.status(403).json({ error: 'Esta conta está desativada.' });
     if (user.role !== 'superadmin' && user.tenant && !user.tenant.ativo) {
       return res.status(403).json({ error: 'Esta instituição está temporariamente desativada.' });
     }

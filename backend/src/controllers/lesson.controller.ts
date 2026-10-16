@@ -12,7 +12,7 @@ export const getLessonsByModule = async (req: AuthRequest, res: Response) => {
   try {
     const { moduleId } = req.query;
     const account = await currentAccess(req);
-    const selectedModule = typeof moduleId === 'string' ? await prisma.module.findUnique({ where: { id: moduleId }, include: { course: true } }) : null;
+    const selectedModule = typeof moduleId === 'string' ? await prisma.module.findFirst({ where: { id: moduleId, archivedAt: null, OR: [{ periodId: null }, { period: { archivedAt: null } }] }, include: { course: true } }) : null;
     if (moduleId && !selectedModule) return res.status(404).json({ error: 'Matéria não encontrada.' });
     if (selectedModule) await assertCourseContentAccess(account, selectedModule.course);
     else if (account.role !== 'superadmin' && account.role !== 'coord') {
@@ -25,8 +25,10 @@ export const getLessonsByModule = async (req: AuthRequest, res: Response) => {
     }
     const lessons = await prisma.lesson.findMany({
       where: {
+        archivedAt: null,
+        module: { archivedAt: null, OR: [{ periodId: null }, { period: { archivedAt: null } }] },
         ...(moduleId ? { moduleId: String(moduleId) } : {}),
-        ...(selectedModule || req.user?.role === 'superadmin' ? {} : req.user?.role === 'coord' ? { module: { course: { tenantId: req.user.tenantId } } } : { module: { courseId: req.user?.courseId } })
+        ...(selectedModule || req.user?.role === 'superadmin' ? {} : req.user?.role === 'coord' ? { module: { archivedAt: null, OR: [{ periodId: null }, { period: { archivedAt: null } }], course: { tenantId: req.user.tenantId } } } : { module: { archivedAt: null, OR: [{ periodId: null }, { period: { archivedAt: null } }], courseId: req.user?.courseId } })
       },
       include: { module: true }
     });
@@ -42,9 +44,9 @@ export const getLessonById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const account = await currentAccess(req);
-    const lesson = await prisma.lesson.findUnique({
-      where: { id },
-      include: { module: { include: { lessons: true, course: true } } }
+    const lesson = await prisma.lesson.findFirst({
+      where: { id, archivedAt: null, module: { archivedAt: null, OR: [{ periodId: null }, { period: { archivedAt: null } }] } },
+      include: { module: { include: { lessons: { where: { archivedAt: null } }, course: true } } }
     });
 
     if (!lesson) return res.status(404).json({ error: 'Aula não encontrada' });

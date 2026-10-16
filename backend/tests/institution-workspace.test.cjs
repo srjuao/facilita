@@ -4,7 +4,8 @@ const { institutionRouter } = require('../dist/institution/router');
 const { institutionDb: db, effectivePermissions, cleanMembers, cleanText, requireInstitutionSession, requireInstitutionPermission } = require('../dist/institution/policy');
 
 test('institution permissions: coordinator all, teacher explicit grants, student none', () => {
-  assert.equal(effectivePermissions('coord', []).length, 5);
+  assert.equal(effectivePermissions('coord', []).length, 6);
+  assert.ok(effectivePermissions('coord', []).includes('exams.manage'));
   assert.deepEqual(effectivePermissions('professor', ['content.manage', 'unknown']), ['content.manage']);
   assert.deepEqual(effectivePermissions('professor', []), []);
   assert.deepEqual(effectivePermissions('aluno', ['students.manage']), []);
@@ -52,7 +53,7 @@ test('disabled institution and deleted session cannot read workspace', async () 
 test('notice reads are scoped to current database institution', async () => {
   db.user.findUnique = async () => currentUser({ role: 'aluno' });
   db.announcement.findMany = async args => {
-    assert.deepEqual(args.where, { tenantId: 'tenant-a' });
+    assert.deepEqual(args.where, { tenantId: 'tenant-a', archivedAt: null });
     assert.equal(args.take, 100);
     return [];
   };

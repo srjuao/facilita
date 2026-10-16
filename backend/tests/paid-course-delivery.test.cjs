@@ -9,9 +9,9 @@ const lesson = () => ({ id: 'lesson', titulo: 'Actual lesson', videoUrl: 'https:
 const db = {
   user: { findUnique: async () => account },
   course: { findUnique: async () => ({ ...course, modules: [{ id: 'module', lessons: [lesson()], lista: '[]' }] }) },
-  module: { findUnique: async () => ({ id: 'module', courseId: course.id, course }) },
-  lesson: { findUnique: async () => lesson(), findMany: async () => { reads++; return [lesson()]; } },
-  exam: { findMany: async () => { reads++; return [{ id: 'exam', questions: [] }]; } },
+  module: { findFirst: async () => ({ id: 'module', courseId: course.id, course }) },
+  lesson: { findFirst: async () => lesson(), findUnique: async () => lesson(), findMany: async () => { reads++; return [lesson()]; } },
+  exam: { findMany: async () => { reads++; return [{ id: 'exam', _count: { questions: 0 } }]; } },
   courseEntitlement: { findUnique: async () => ({ active: entitled }) },
 };
 const originalLoad = Module._load;
@@ -46,4 +46,19 @@ test('revoked extra-course access fails again and foreign tenant is denied even 
   let res = response(); await lessons.getLessonById(request(), res); assert.equal(res.code, 403);
   entitled = true; account = { ...account, tenantId: 'foreign-tenant' };
   res = response(); await courses.getCourseDetails(request(), res); assert.equal(res.code, 403); assert.equal(res.body.modules, undefined);
+});
+test('legacy exam endpoint filters unpublished/archived records and never leaks question keys', async () => {
+  entitled = true; account = { ...account, tenantId: 'tenant-a' };
+  db.exam.findMany = async args => {
+    assert.deepEqual(args.where, { courseId: 'paid', archivedAt: null, published: true });
+    assert.equal(args.select.questions, undefined);
+    return [{ id: 'exam', nome: 'Avaliação', published: true, _count: { questions: 1 },
+      questions: [{ id: 1, correta: 1, comentario: 'Never disclose', dist: '[1]' }] }];
+  };
+  const res = response();
+  await exams.getExams({ ...request(), query: { courseId: 'paid' } }, res);
+  assert.equal(res.code, 200);
+  assert.equal(res.body[0].q, 1);
+  assert.equal(res.body[0].questions, undefined);
+  assert.doesNotMatch(JSON.stringify(res.body), /correta|comentario|Never disclose/);
 });

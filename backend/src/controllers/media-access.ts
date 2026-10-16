@@ -34,9 +34,11 @@ export async function streamLessonMedia(req: Request, res: Response) {
     if (!validMediaSignature(req.params.id, user, expires, signature)) return res.status(403).json({ error: 'Link de vídeo inválido ou expirado. Atualize a aula.' });
     const [account, lesson] = await Promise.all([
       prisma.user.findUnique({ where: { id: user as string }, include: { tenant: { include: { plan: true } } } }),
-      prisma.lesson.findUnique({ where: { id: req.params.id }, include: { module: { include: { course: true } } } })
+      prisma.lesson.findUnique({ where: { id: req.params.id }, include: { module: { include: { course: true, period: true } } } })
     ]);
     if (!account || !lesson) return res.status(404).json({ error: 'Vídeo não encontrado.' });
+    if (lesson.archivedAt || lesson.module.archivedAt || lesson.module.period?.archivedAt) return res.status(404).json({ error: 'Esta aula foi arquivada.' });
+    if (account.disabledAt) return res.status(403).json({ error: 'Esta conta está desativada.' });
     if (account.role !== 'superadmin' && (!account.tenant?.ativo || account.tenant.plan && !account.tenant.plan.videoAulas)) return res.status(403).json({ error: 'Seu acesso a este vídeo não está mais disponível.' });
     await assertCourseContentAccess(account, lesson.module.course);
     const filename = localVideoFilename(lesson.videoUrl);

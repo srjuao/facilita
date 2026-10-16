@@ -18,7 +18,7 @@ Grupos de chat são criados pela coordenação ou por professores com `chat.crea
 
 A migration `20261016040000_institution_workspace` acrescenta permissões, departamentos, avisos, períodos, turmas e conversas, sem apagar registros existentes nem inserir exemplos. Professores existentes também começam sem grants; a coordenação deve revisar seus acessos. O deploy deve executar `prisma migrate deploy` antes de iniciar a API nova.
 
-Departamentos organizam pessoas; não concedem automaticamente privilégios pelo nome (por exemplo, “Financeiro”). Contas específicas de funcionários, permissões financeiras, mensalidades dos alunos, emissão de boletos e conciliação de pagamentos ainda exigem módulos próprios. O recurso de realizar/corrigir atividades não foi implementado por esta entrega; as telas de avaliações existentes permanecem com seu escopo anterior.
+Departamentos organizam pessoas; não concedem automaticamente privilégios pelo nome (por exemplo, “Financeiro”). Funcionários agora têm contas próprias com permissões limitadas de alunos, avisos e criação de grupos; não recebem poderes de professor ou coordenação. Permissões financeiras, mensalidades dos alunos, emissão de boletos e conciliação de pagamentos continuam somente no desenho do produto. O ciclo de avaliações está descrito em `academic-cycle.md`.
 
 ## Separação dos financeiros definida pelo produto
 
