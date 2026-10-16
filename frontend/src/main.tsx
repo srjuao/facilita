@@ -4,6 +4,7 @@ import { App } from './App';
 import { AuthProvider } from './auth/AuthContext';
 import { CourseProvider } from './context/CourseContext';
 import './index.css';
+import './app-shell.css';
 
 const Landing = lazy(() => import('./pages/Landing').then(module => ({ default: module.Landing })));
 const host = window.location.hostname;

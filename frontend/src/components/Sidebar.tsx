@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { 
   LayoutDashboard, 
   Building2, 
   BookOpen, 
   DollarSign, 
-  ArrowRight, 
+  Menu, X,
   Users, 
   Layers, 
   AlertTriangle, 
@@ -27,6 +27,38 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
   const { user, logout } = useAuth();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const main = document.querySelector<HTMLElement>('.app .main');
+    const wasInert = main?.inert;
+    if (main) main.inert = true;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    menuRef.current?.querySelector<HTMLButtonElement>('nav button')?.focus();
+    const close = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Tab') {
+        const targets = [toggleRef.current, ...Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') || [])].filter((element): element is HTMLButtonElement => !!element);
+        const index = targets.indexOf(document.activeElement as HTMLButtonElement);
+        event.preventDefault();
+        targets[(index + (event.shiftKey ? -1 : 1) + targets.length) % targets.length]?.focus();
+      }
+    };
+    const desktop = window.matchMedia('(min-width: 761px)');
+    const resize = () => { if (desktop.matches) setOpen(false); };
+    desktop.addEventListener('change', resize);
+    window.addEventListener('keydown', close);
+    return () => {
+      window.removeEventListener('keydown', close);
+      desktop.removeEventListener('change', resize);
+      if (main) main.inert = wasInert || false;
+      document.body.style.overflow = previousOverflow;
+      if (!desktop.matches) toggleRef.current?.focus();
+    };
+  }, [open]);
 
   if (!user) return null;
 
@@ -80,7 +112,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
   const tenantLogo = user.role !== 'superadmin' ? user.tenant?.logoUrl : '';
 
   return (
-    <aside className="side">
+    <>
+    <div className="mobile-navigation"><span>Facilita Estudos</span><button ref={toggleRef} aria-label={open ? 'Fechar menu' : 'Abrir menu'} aria-expanded={open} aria-controls="platform-navigation" onClick={() => setOpen(!open)}>{open ? <X size={22} /> : <Menu size={22} />}</button></div>
+    {open && <button className="navigation-backdrop" aria-label="Fechar menu" onClick={() => setOpen(false)} />}
+    <aside ref={menuRef} id="platform-navigation" className={`side${open ? ' side-open' : ''}`}>
       <div className="wm-wrap">
         <div className="wm-mini">
           <img src={tenantLogo || '/facilita-estudos-mark.svg'} alt={tenantLogo ? tenantName : 'Facilita Estudos'} onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = '/facilita-estudos-mark.svg'; }} />
@@ -91,14 +126,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
       </div>
       <div className="tenant">{tenantName}</div>
 
-      <nav className="nav">
+      <nav className="nav" aria-label="Navegação principal">
         {navItems.map((item, idx) => (
           item.sec ? (
             <div key={idx} className="sec">{item.sec}</div>
           ) : (
             <button
               key={item.id}
-              onClick={() => item.id && onNavigate(item.id)}
+              onClick={() => { if (item.id) onNavigate(item.id); setOpen(false); }}
+              aria-current={currentView === item.id ? 'page' : undefined}
               className={currentView === item.id ? 'on' : ''}
               title={item.label}
             >
@@ -121,12 +157,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
         </div>
         <button 
           onClick={logout} 
-          title="Sair" 
+          title="Sair" aria-label="Sair da conta"
           style={{ cursor: 'pointer', background: 'none', border: 0, color: 'var(--side-muted)', display: 'flex', alignItems: 'center' }}
         >
           <LogOut size={16} />
         </button>
       </div>
     </aside>
+    </>
   );
 };
