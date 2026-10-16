@@ -1,0 +1,21 @@
+services:
+  livekit:
+    image: livekit/livekit-server@sha256:89ca9ce0791e18d6e03bf6e2c49ceb27e1c754eae8bd50c989386c1a5963791a
+    restart: unless-stopped
+    command: ["--config", "/etc/livekit/livekit.yaml"]
+    ports:
+      - "172.17.0.1:7880:7880/tcp"
+      - "7881:7881/tcp"
+      - "7882:7882/udp"
+    volumes:
+      - /opt/facilita/livekit/config:/etc/livekit:ro
+    cpus: 0.60
+    mem_limit: 768m
+    pids_limit: 100
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "3"

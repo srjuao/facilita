@@ -58,6 +58,17 @@ const liveConfig = () => {
   if (process.env.LIVEKIT_ROOM_AUTO_CREATE_DISABLED !== 'true' || !['ws:', 'wss:'].includes(parsed.protocol) || !apiKey || !apiSecret || parsed.username || parsed.password) return null;
   return { url: parsed.toString(), apiKey, apiSecret };
 };
+const pilotMode = () => process.env.LIVE_PILOT_MODE === 'true';
+// Shared by every tenant and every API replica. Keep the lock until the
+// schedule/claim transaction commits so two simultaneous requests cannot pass.
+const lockPilotCapacity = async (tx: any) => {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(117921184, 1)`;
+};
+const assertPilotSessionCapacity = (session: Session) => {
+  if (session.rooms.length !== 1 || session.roomSize > 6 || session.rooms.some(room => room.memberIds.length > 6)) {
+    fail(409, 'Esta aula excede o limite do piloto: uma sala com até 6 alunos. Agende uma nova aula menor.');
+  }
+};
 // Each start claim owns a distinct generation. A stale worker can never create
 // a room that a newer attempt has already closed, nor can it mint its token.
 const childRoomName = (session: Session, tenantId: string, roomId: string, generation: Date) => 'facilita_' + createHash('sha256').update(tenantId + ':' + session.id + ':' + roomId + ':' + generation.toISOString()).digest('hex').slice(0, 40);
@@ -79,6 +90,11 @@ liveRouter.use((req: InstitutionRequest, res, next) => {
   if (!req.institution?.tenantId || req.institution.role === 'superadmin') return res.status(403).json({ error: 'Acesse com uma conta da instituição.' });
   next();
 });
+
+liveRouter.get('/capabilities', route(async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ pilotMode: pilotMode(), maxStudentsPerSession: pilotMode() ? 6 : null });
+}));
 
 liveRouter.get('/', route(async (req, res) => {
   const actor = req.institution!;
@@ -130,15 +146,25 @@ liveRouter.post('/', route(async (req, res) => {
   if (classGroupId === null || courseId === null) fail(400, 'Selecione um curso e uma turma para dividir a aula em salas.');
   const group = await db.classGroup.findFirst({ where: { id: classGroupId, tenantId: actor.tenantId, archivedAt: null }, select: { courseId: true, memberIds: true } });
   if (!group || group.courseId !== courseId) fail(400, 'Selecione a turma e o curso correspondentes.');
-  const roomSize = req.body.roomSize === undefined ? 30 : req.body.roomSize;
-  if (!Number.isInteger(roomSize) || roomSize < 10 || roomSize > 50) fail(400, 'Cada sala deve ter entre 10 e 50 alunos.');
+  const roomSize = req.body.roomSize === undefined ? (pilotMode() ? 6 : 30) : req.body.roomSize;
+  if (!Number.isInteger(roomSize) || roomSize < (pilotMode() ? 1 : 10) || roomSize > (pilotMode() ? 6 : 50)) fail(400, pilotMode() ? 'No piloto, cada sala deve ter entre 1 e 6 alunos.' : 'Cada sala deve ter entre 10 e 50 alunos.');
   const candidateIds = [...new Set(group!.memberIds)];
   const eligible = await db.user.findMany({ where: { id: { in: candidateIds }, tenantId: actor.tenantId, courseId, role: 'aluno', disabledAt: null }, select: { id: true } });
   const members = eligible.map(user => user.id).sort();
   if (!members.length) fail(400, 'A turma não possui alunos para esta aula.');
+  if (pilotMode() && members.length > 6) fail(409, 'O piloto aceita até 6 alunos por aula. Escolha uma turma menor.');
   const roomCount = Math.ceil(members.length / roomSize);
   const rooms = Array.from({ length: roomCount }, (_, index) => ({ ordinal: index + 1, label: `Sala ${index + 1}`, memberIds: members.slice(index * roomSize, (index + 1) * roomSize) }));
-  const session = await db.liveSession.create({ data: { tenantId: actor.tenantId, courseId, classGroupId, title: title!, startsAt: startsAt!, endsAt: endsAt!, createdBy: actor.id, roomSize, rooms: { create: rooms } }, select: sessionSelect });
+  if (pilotMode() && roomCount !== 1) fail(409, 'O piloto aceita apenas uma sala por aula.');
+  const data = { tenantId: actor.tenantId, courseId, classGroupId, title: title!, startsAt: startsAt!, endsAt: endsAt!, createdBy: actor.id, roomSize, rooms: { create: rooms } };
+  const session = pilotMode()
+    ? await db.$transaction(async tx => {
+      await lockPilotCapacity(tx);
+      const overlap = await tx.liveSession.findFirst({ where: { status: { in: ['scheduled', 'starting', 'live', 'ending'] }, startsAt: { lt: endsAt! }, endsAt: { gt: startsAt! } }, select: { id: true } });
+      if (overlap) fail(409, 'Já existe uma aula agendada ou ativa neste horário no servidor piloto. Escolha outro horário.');
+      return tx.liveSession.create({ data, select: sessionSelect });
+    })
+    : await db.liveSession.create({ data, select: sessionSelect });
   res.status(201).json(safeSession(req, session));
 }));
 
@@ -184,10 +210,20 @@ liveRouter.post('/:id/start', route(async (req, res) => {
   if (session!.classGroupId && !await db.classGroup.findFirst({ where: { id: session!.classGroupId, tenantId: req.institution!.tenantId, archivedAt: null }, select: { id: true } })) fail(409, 'Esta turma foi arquivada.');
   if (session!.endsAt.getTime() <= Date.now()) fail(409, 'O horário desta aula já passou. Agende uma nova aula.');
   if (session!.startsAt.getTime() > Date.now() + 30 * 60000) fail(409, 'A sala pode ser iniciada a partir de 30 minutos antes da aula.');
+  if (pilotMode()) assertPilotSessionCapacity(session!);
   const recover = session!.status === 'starting' && session!.updatedAt.getTime() <= Date.now() - 60000;
   if (session!.status !== 'scheduled' && !recover) fail(409, 'A sala está sendo preparada. Aguarde um instante e tente novamente.');
   const claimVersion = new Date(Math.max(Date.now(), session!.updatedAt.getTime() + 1));
-  const claimed = await db.liveSession.updateMany({ where: { id: session!.id, tenantId: req.institution!.tenantId, status: session!.status, updatedAt: session!.updatedAt }, data: { status: 'starting', startedAt: claimVersion, updatedAt: claimVersion } });
+  const claimWhere = { id: session!.id, tenantId: req.institution!.tenantId, status: session!.status, updatedAt: session!.updatedAt };
+  const claimData = { status: 'starting', startedAt: claimVersion, updatedAt: claimVersion };
+  const claimed = pilotMode()
+    ? await db.$transaction(async tx => {
+      await lockPilotCapacity(tx);
+      const otherActive = await tx.liveSession.findFirst({ where: { id: { not: session!.id }, status: { in: ['starting', 'live', 'ending'] } }, select: { id: true } });
+      if (otherActive) fail(409, 'O servidor piloto já está transmitindo uma aula. Aguarde o encerramento.');
+      return tx.liveSession.updateMany({ where: claimWhere, data: claimData });
+    })
+    : await db.liveSession.updateMany({ where: claimWhere, data: claimData });
   if (!claimed.count) fail(409, 'O estado da aula mudou. Atualize a lista.');
   try {
     const client = roomClient(config!);

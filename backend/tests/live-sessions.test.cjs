@@ -25,6 +25,23 @@ test('LiveKit permission is explicit for teachers and never granted to students'
   assert.deepEqual(effectivePermissions('aluno', ['live.manage']), []);
 });
 
+test('capabilities reports pilot limit without exposing LiveKit credentials', async () => {
+  const previous = process.env.LIVE_PILOT_MODE;
+  db.user.findUnique = async () => actor('coord');
+  try {
+    process.env.LIVE_PILOT_MODE = 'true';
+    const pilot = await request('/capabilities');
+    assert.equal(pilot.status, 200);
+    assert.deepEqual(pilot.body, { pilotMode: true, maxStudentsPerSession: 6 });
+    delete process.env.LIVE_PILOT_MODE;
+    const normal = await request('/capabilities');
+    assert.equal(normal.status, 200);
+    assert.deepEqual(normal.body, { pilotMode: false, maxStudentsPerSession: null });
+  } finally {
+    if (previous === undefined) delete process.env.LIVE_PILOT_MODE; else process.env.LIVE_PILOT_MODE = previous;
+  }
+});
+
 test('live session lookup is tenant-scoped and refuses foreign room', async () => {
   db.user.findUnique = async () => actor();
   db.liveSession.findFirst = async args => {
@@ -310,5 +327,67 @@ test('ending closes only the live generation, never a stale start generation', a
     for (const [key, value] of Object.entries({ LIVEKIT_URL: previous.url, LIVEKIT_API_KEY: previous.key, LIVEKIT_API_SECRET: previous.secret, LIVEKIT_ROOM_AUTO_CREATE_DISABLED: previous.auto })) {
       if (value === undefined) delete process.env[key]; else process.env[key] = value;
     }
+  }
+});
+
+test('pilot scheduling rejects more than six students and overlapping classes globally', async () => {
+  const old = process.env.LIVE_PILOT_MODE;
+  process.env.LIVE_PILOT_MODE = 'true';
+  db.user.findUnique = async () => actor('coord');
+  db.course.findFirst = async () => ({ id: 'course-a' });
+  db.classGroup.findFirst = async () => ({ courseId: 'course-a', memberIds: Array.from({ length: 7 }, (_, i) => `student-${i}`) });
+  db.user.findMany = async args => args.where.id.in.map(id => ({ id }));
+  const body = { title: 'Aula piloto', startsAt: '2026-10-17T12:00:00Z', endsAt: '2026-10-17T13:00:00Z', courseId: 'course-a', classGroupId: 'class-a' };
+  try {
+    assert.equal((await request('/', 'POST', body)).status, 409);
+    db.classGroup.findFirst = async () => ({ courseId: 'course-a', memberIds: ['student-1', 'student-2'] });
+    assert.equal((await request('/', 'POST', { ...body, roomSize: 7 })).status, 400);
+    let locked = false;
+    db.$transaction = async callback => callback({
+      $executeRaw: async () => { locked = true; },
+      liveSession: {
+        findFirst: async args => {
+          assert.equal(locked, true);
+          assert.equal(args.where.tenantId, undefined); // Global across tenants.
+          assert.deepEqual(args.where.status.in, ['scheduled', 'starting', 'live', 'ending']);
+          return { id: 'other-tenant-session' };
+        },
+        create: async () => { throw new Error('Must not create an overlapping session'); },
+      },
+    });
+    assert.equal((await request('/', 'POST', body)).status, 409);
+  } finally {
+    if (old === undefined) delete process.env.LIVE_PILOT_MODE; else process.env.LIVE_PILOT_MODE = old;
+  }
+});
+
+test('pilot start refuses legacy oversized session and global active room under advisory lock', async () => {
+  const env = { LIVE_PILOT_MODE: process.env.LIVE_PILOT_MODE, LIVEKIT_URL: process.env.LIVEKIT_URL, LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY, LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET, LIVEKIT_ROOM_AUTO_CREATE_DISABLED: process.env.LIVEKIT_ROOM_AUTO_CREATE_DISABLED };
+  Object.assign(process.env, { LIVE_PILOT_MODE: 'true', LIVEKIT_URL: 'wss://live.example.invalid', LIVEKIT_API_KEY: 'key', LIVEKIT_API_SECRET: 'secret', LIVEKIT_ROOM_AUTO_CREATE_DISABLED: 'true' });
+  db.user.findUnique = async () => actor('coord');
+  const session = { id: 'pilot-a', status: 'scheduled', courseId: 'course-a', classGroupId: 'class-a', roomSize: 6, updatedAt: new Date(Date.now() - 1000), startsAt: new Date(), endsAt: new Date(Date.now() + 3600000), rooms: [{ id: 'room-a', memberIds: ['one'], facilitatorId: 'teacher-a' }] };
+  db.liveSession.findFirst = async () => session;
+  db.user.count = async () => 1;
+  db.classGroup.findFirst = async () => ({ id: 'class-a' });
+  try {
+    session.rooms[0].memberIds = Array.from({ length: 7 }, (_, i) => `student-${i}`);
+    assert.equal((await request('/pilot-a/start', 'POST')).status, 409);
+    session.rooms[0].memberIds = ['one'];
+    let locked = false;
+    db.$transaction = async callback => callback({
+      $executeRaw: async () => { locked = true; },
+      liveSession: {
+        findFirst: async args => {
+          assert.equal(locked, true);
+          assert.equal(args.where.tenantId, undefined);
+          assert.deepEqual(args.where.status.in, ['starting', 'live', 'ending']);
+          return { id: 'other-tenant-session' };
+        },
+        updateMany: async () => { throw new Error('Must not claim capacity'); },
+      },
+    });
+    assert.equal((await request('/pilot-a/start', 'POST')).status, 409);
+  } finally {
+    for (const [key, value] of Object.entries(env)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
   }
 });

@@ -1,0 +1,17 @@
+port: 7880
+logging:
+  level: info
+  json: true
+rtc:
+  node_ip: 92.112.177.100
+  use_external_ip: false
+  tcp_port: 7881
+  udp_port: 7882
+key_file: /etc/livekit/keys.yaml
+room:
+  auto_create: false
+  max_participants: 8
+  empty_timeout: 300
+  departure_timeout: 20
+turn:
+  enabled: false
