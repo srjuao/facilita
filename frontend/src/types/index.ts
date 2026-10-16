@@ -14,6 +14,7 @@ export interface User {
 }
 
 export interface Course {
+  _count?: { students: number };
   id: string;
   nome: string;
   status: string;
@@ -28,6 +29,7 @@ export interface Course {
 }
 
 export interface Tenant {
+  _count?: { users: number };
   id: string;
   nome: string;
   full: string;

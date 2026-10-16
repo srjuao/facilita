@@ -104,7 +104,7 @@ export const AppContent: React.FC = () => {
       case 'co-relatorio': return <CoordReport />;
 
       // SuperAdmin
-      case 'sa-overview': return <SuperAdminOverview />;
+      case 'sa-overview': return <SuperAdminOverview onNavigate={setCurrentView} />;
       case 'sa-tenants': return <SuperAdminTenants />;
       case 'sa-courses': return <SuperAdminCourses />;
       case 'sa-fin': return <SuperAdminFinancial />;

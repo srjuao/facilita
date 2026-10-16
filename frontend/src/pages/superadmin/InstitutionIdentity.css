@@ -2,7 +2,10 @@
 .institution-identity{display:grid;gap:22px;margin:24px 0}
 .institution-identity h2{margin:6px 0 10px;font-size:24px}
 .identity-fields{border:0;padding:0;margin:0;min-width:0;display:grid;gap:24px}
-.identity-assets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.identity-assets{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+[hidden]{display:none!important}
+.wizard-review{display:grid;grid-template-columns:120px 1fr;gap:14px;margin:24px 0}.wizard-review dt{color:var(--muted);font-size:13px}.wizard-review dd{margin:0;overflow-wrap:anywhere}.wizard-steps{overflow:auto}.wizard-steps span{white-space:nowrap}
+@media(max-width:600px){.wizard-review{grid-template-columns:1fr;gap:8px}.wizard-review dd{margin-bottom:10px}.wizard-fields{grid-template-columns:1fr!important}.asset-grid{grid-template-columns:1fr!important}.wizard-actions{flex-wrap:wrap}.wizard-steps b{font-size:11px}}
 .identity-upload{display:grid;align-content:start;gap:9px;padding:16px;border:1px solid var(--line);border-radius:12px;min-width:0}
 .identity-upload small{color:var(--muted);overflow-wrap:anywhere}
 .identity-upload input{max-width:100%;font:inherit;font-size:12px}
