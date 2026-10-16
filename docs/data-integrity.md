@@ -14,7 +14,7 @@ Quando a integração correspondente não existe, a interface deve informar essa
 
 - Certificados: emissão e verificação ainda não integradas (`frontend/src/components/CertificateModal.tsx`).
 - Alertas: dependem de eventos de aprendizagem e regras ainda não integrados (`frontend/src/pages/coord/CoordAlerts.tsx`).
-- Turmas/subturmas: gestão e acompanhamento ainda sem registros integrados (`frontend/src/pages/coord/CoordSubs.tsx`).
+- Indicadores de turmas/subturmas: turmas são cadastradas em `InstitutionWorkspace`, com curso, período e participantes persistidos; ainda não há histórico de engajamento por turma para alimentar gráficos (`frontend/src/pages/coord/CoordSubs.tsx`).
 - Flashcards e plano de estudos: cadastro/acompanhamento ainda não integrados (`frontend/src/pages/student/StudentFlashcards.tsx`, `frontend/src/pages/student/StudentStudyPlan.tsx`).
 - Histórico de engajamento e métricas de aprendizagem: não há histórico para apresentar até que existam eventos reais. Não usar números fixos, séries de demonstração ou percentual inventado nos gráficos e dashboards.
 - Assistente de IA: habilitar a permissão do plano não configura um provedor; respostas reais dependem da integração (`frontend/src/pages/student/AIChat.tsx`, `frontend/src/pages/superadmin/SuperAdminPlans.tsx`).

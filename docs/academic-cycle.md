@@ -14,7 +14,7 @@ Não há correção discursiva, prazo cronometrado, banco global de questões ou
 
 ## Gestão sem exclusão física
 
-Avisos, turmas, departamentos, períodos, matérias, aulas e grupos podem ser editados e arquivados/restaurados. Alterações exigem a versão/timestamp do registro para evitar sobrescrever outro operador. Turmas preservam seu curso; novos participantes precisam pertencer ao curso. Grupos mantêm mensagens após arquivamento, mas bloqueiam novos envios. Remover um participante impede novas consultas/envios desse usuário à conversa.
+Avisos, turmas, departamentos, períodos, matérias, aulas e grupos podem ser editados e arquivados/restaurados. Alterações exigem a versão/timestamp do registro para evitar sobrescrever outro operador. Turmas preservam seu curso e passam a referenciar também um período desse curso; novas turmas exigem período ativo, enquanto turmas legadas sem período podem ser corrigidas na edição. Novos participantes precisam pertencer ao curso. Grupos mantêm mensagens após arquivamento, mas bloqueiam novos envios. Remover um participante impede novas consultas/envios desse usuário à conversa.
 
 Arquivar um período oculta suas matérias e aulas dos alunos. Arquivar uma matéria oculta suas aulas. Restaurar o ancestral devolve apenas os descendentes que não estejam arquivados individualmente. Vídeos locais verificam novamente o arquivamento da aula, matéria e período ao reproduzir, mesmo com link assinado ainda válido. Arquivamento não apaga arquivos ou registros.
 

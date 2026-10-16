@@ -16,7 +16,6 @@ import {
   MessageSquare, 
   User, 
   LogOut,
-  Sliders,
   ShoppingBag
 } from 'lucide-react';
 
@@ -84,11 +83,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
       { id: 'co-chat', label: 'Chat interno', icon: <MessageSquare size={18} /> },
       { id: 'co-live', label: 'Ao vivo', icon: <Radio size={18} /> },
       { id: 'co-provas', label: 'Provas e simulados', icon: <FileText size={18} /> },
-      { sec: 'Curso' },
-      { id: 'co-ucs', label: 'Períodos e matérias', icon: <Calendar size={18} /> },
+      { sec: 'Gestão acadêmica' },
+      { id: 'co-gestao', label: 'Cursos e estrutura', icon: <BookOpen size={18} /> },
       { id: 'co-conteudo', label: 'Conteúdo', icon: <BookOpen size={18} /> },
-      { id: 'co-gestao', label: 'Gestão Cursos & Aulas', icon: <Sliders size={18} /> },
-      { id: 'co-setup', label: 'Unidade e equipe', icon: <Building2 size={18} /> },
+      { id: 'co-setup', label: 'Equipe docente', icon: <Users size={18} /> },
       { id: 'co-team', label: 'Departamentos e acessos', icon: <Users size={18} /> },
       { id: 'co-sales', label: 'Cursos pagos e liberações', icon: <ShoppingBag size={18} /> },
       { id: 'co-staff', label: 'Funcionários', icon: <Users size={18} /> },

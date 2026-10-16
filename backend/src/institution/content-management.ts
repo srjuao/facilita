@@ -51,6 +51,7 @@ contentManagementRouter.patch('/modules/:id', route(async (req, res) => {
     const periodId = body.periodId !== undefined ? body.periodId : current.periodId;
     if (periodId !== null && typeof periodId !== 'string') throw new PlanError(400, 'Período inválido.');
     if (periodId && periodId !== current.periodId && !await tx.academicPeriod.findFirst({ where: { id: periodId, courseId: current.courseId, archivedAt: null } })) throw new PlanError(400, 'Selecione um período ativo deste curso.');
+    if (!periodId && body.archived !== true) throw new PlanError(400, 'Selecione um período para esta matéria.');
     const result = await tx.module.updateMany({ where: { id: current.id, updatedAt: expectedUpdatedAt }, data: {
       ...(body.nome !== undefined ? { nome: text(body.nome, 120) } : {}), ...(body.periodId !== undefined ? { periodId } : {}),
       ...(typeof body.archived === 'boolean' ? { archivedAt: body.archived ? new Date() : null } : {}),

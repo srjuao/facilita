@@ -86,12 +86,16 @@ institutionRouter.patch('/classes/:id', route(async (req, res) => {
   const room = await db.classGroup.findFirst({ where });
   if (!room) return res.status(404).json({ error: 'Turma não encontrada no seu curso.' });
   if (req.body.courseId !== undefined && req.body.courseId !== room.courseId) return res.status(400).json({ error: 'O curso de uma turma não pode ser alterado.' });
+  const periodId = req.body.periodId === undefined ? room.periodId : req.body.periodId;
+  if (req.body.archived === true && req.body.periodId !== undefined && periodId !== room.periodId) return res.status(400).json({ error: 'Arquivar a turma não pode alterar seu período.' });
+  if (req.body.archived !== true && periodId !== null && (typeof periodId !== 'string' || !periodId.trim() || !await db.academicPeriod.findFirst({ where: { id: periodId, tenantId: room.tenantId, courseId: room.courseId, archivedAt: null } }))) return res.status(400).json({ error: 'Selecione um período ativo deste curso.' });
+  if (periodId === null && req.body.archived !== true) return res.status(400).json({ error: 'Selecione um período para esta turma.' });
   const addedIds = memberIds.filter(id => !room.memberIds.includes(id));
   const count = addedIds.length ? await db.user.count({ where: { id: { in: addedIds }, tenantId: req.institution!.tenantId, disabledAt: null, courseId: room.courseId, role: { in: ['aluno', 'professor'] } } }) : 0;
   if (count !== addedIds.length) return res.status(400).json({ error: 'Os novos participantes devem pertencer ao curso desta instituição.' });
-  const result = await db.classGroup.updateMany({ where: { ...where, updatedAt: version }, data: { nome, memberIds, ...archiveChange(req) } });
+  const result = await db.classGroup.updateMany({ where: { ...where, updatedAt: version }, data: { nome, memberIds, periodId, ...archiveChange(req) } });
   if (!result.count) return conflict(res);
-  res.json(await db.classGroup.findFirst({ where, include: { course: { select: { id: true, nome: true } } } }));
+  res.json(await db.classGroup.findFirst({ where, include: { course: { select: { id: true, nome: true } }, period: { select: { id: true, nome: true } } } }));
 }));
 institutionRouter.patch('/conversations/:id', route(async (req, res) => {
   if (!allow(req, res, 'chat.create')) return;
@@ -163,7 +167,8 @@ institutionRouter.post('/notices', route(async (req, res) => {
 }));
 institutionRouter.get('/periods', route(async (req, res) => {
   const session = req.institution!;
-  res.json(await db.academicPeriod.findMany({ where: { tenantId: session.tenantId, archivedAt: req.query.archived === 'true' && session.permissions.includes('content.manage') ? { not: null } : null, ...(session.role === 'coord' ? {} : { courseId: session.courseId ?? '' }) }, include: { course: { select: { id: true, nome: true } }, _count: { select: { modules: true } } }, orderBy: { nome: 'asc' } }));
+  const courseId = typeof req.query.courseId === 'string' ? req.query.courseId : undefined;
+  res.json(await db.academicPeriod.findMany({ where: { tenantId: session.tenantId, archivedAt: req.query.archived === 'true' && session.permissions.includes('content.manage') ? { not: null } : null, ...(session.role === 'coord' ? courseId ? { courseId } : {} : { courseId: session.courseId ?? '' }) }, include: { course: { select: { id: true, nome: true } }, _count: { select: { modules: true, classGroups: true } } }, orderBy: { nome: 'asc' } }));
 }));
 institutionRouter.post('/periods', route(async (req, res) => {
   if (!allow(req, res, 'content.manage')) return;
@@ -173,15 +178,18 @@ institutionRouter.post('/periods', route(async (req, res) => {
 }));
 institutionRouter.get('/classes', route(async (req, res) => {
   const session = req.institution!;
-  res.json(await db.classGroup.findMany({ where: { tenantId: session.tenantId, archivedAt: req.query.archived === 'true' && session.permissions.includes('classes.manage') ? { not: null } : null, ...(session.role === 'coord' ? {} : session.role === 'professor' ? { courseId: session.courseId ?? '' } : { memberIds: { has: session.id } }) }, include: { course: { select: { id: true, nome: true } } }, orderBy: { nome: 'asc' } }));
+  const courseId = typeof req.query.courseId === 'string' ? req.query.courseId : undefined;
+  res.json(await db.classGroup.findMany({ where: { tenantId: session.tenantId, archivedAt: req.query.archived === 'true' && session.permissions.includes('classes.manage') ? { not: null } : null, ...(session.role === 'coord' ? courseId ? { courseId } : {} : session.role === 'professor' ? { courseId: session.courseId ?? '' } : { memberIds: { has: session.id } }) }, include: { course: { select: { id: true, nome: true } }, period: { select: { id: true, nome: true } } }, orderBy: { nome: 'asc' } }));
 }));
 institutionRouter.post('/classes', route(async (req, res) => {
   if (!allow(req, res, 'classes.manage')) return;
   const nome = cleanText(req.body.nome, 100), memberIds = cleanMembers(req.body.memberIds);
   if (!nome || !memberIds || !await courseAllowed(req, req.body.courseId)) return res.status(400).json({ error: 'Informe nome, curso e participantes válidos.' });
+  const periodId = req.body.periodId;
+  if (typeof periodId !== 'string' || !await db.academicPeriod.findFirst({ where: { id: periodId, tenantId: req.institution!.tenantId, courseId: req.body.courseId, archivedAt: null } })) return res.status(400).json({ error: 'Selecione um período ativo deste curso.' });
   const count = await db.user.count({ where: { id: { in: memberIds }, tenantId: req.institution!.tenantId, disabledAt: null, courseId: req.body.courseId, role: { in: ['aluno', 'professor'] } } });
   if (count !== memberIds.length) return res.status(400).json({ error: 'Os participantes devem pertencer ao curso desta instituição.' });
-  res.status(201).json(await db.classGroup.create({ data: { nome, memberIds, tenantId: req.institution!.tenantId, courseId: req.body.courseId }, include: { course: { select: { id: true, nome: true } } } }));
+  res.status(201).json(await db.classGroup.create({ data: { nome, memberIds, tenantId: req.institution!.tenantId, courseId: req.body.courseId, periodId }, include: { course: { select: { id: true, nome: true } }, period: { select: { id: true, nome: true } } } }));
 }));
 institutionRouter.get('/conversations', route(async (req, res) => {
   const cursor = req.query.cursor;

@@ -107,8 +107,22 @@ test('class creation validates every participant in the same institution and cou
     assert.equal(args.where.courseId, 'course-a');
     return 0;
   };
+  db.academicPeriod.findFirst = async args => { assert.deepEqual(args.where, { id: 'period-a', tenantId: 'tenant-a', courseId: 'course-a', archivedAt: null }); return { id: 'period-a' }; };
   await withApi(async request => {
-    assert.equal((await request('/classes', 'POST', { nome: 'Turma A', courseId: 'course-a', memberIds: ['foreign-student'] })).status, 400);
+    assert.equal((await request('/classes', 'POST', { nome: 'Turma A', courseId: 'course-a', periodId: 'period-a', memberIds: ['foreign-student'] })).status, 400);
+  });
+});
+
+test('a new class must belong to an active period of its own course', async () => {
+  db.user.findUnique = async () => currentUser({ role: 'coord' });
+  db.course.findFirst = async () => ({ id: 'course-a' });
+  db.user.count = async () => 0;
+  db.academicPeriod.findFirst = async args => args.where.id === 'period-a' && args.where.courseId === 'course-a' && args.where.tenantId === 'tenant-a' && args.where.archivedAt === null ? { id: 'period-a' } : null;
+  db.classGroup.create = async args => { assert.equal(args.data.courseId, 'course-a'); assert.equal(args.data.periodId, 'period-a'); return { id: 'class-a', ...args.data }; };
+  await withApi(async request => {
+    assert.equal((await request('/classes', 'POST', { nome: 'Turma A', courseId: 'course-a', memberIds: [] })).status, 400);
+    assert.equal((await request('/classes', 'POST', { nome: 'Turma A', courseId: 'course-a', periodId: 'foreign-period', memberIds: [] })).status, 400);
+    assert.equal((await request('/classes', 'POST', { nome: 'Turma A', courseId: 'course-a', periodId: 'period-a', memberIds: [] })).status, 201);
   });
 });
 

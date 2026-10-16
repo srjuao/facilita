@@ -41,7 +41,8 @@ test('students cannot edit notices, periods, classes or departments', async () =
 
 test('teacher edits only own course classes and cannot add foreign students', async () => {
   actor = { ...actor, role: 'professor', permissions: ['classes.manage'] };
-  db.classGroup.findFirst = async args => { assert.equal(args.where.tenantId, 'tenant-a'); assert.equal(args.where.courseId, 'course-a'); return { id: 'class-a', courseId: 'course-a', memberIds: [] }; };
+  db.classGroup.findFirst = async args => { assert.equal(args.where.tenantId, 'tenant-a'); assert.equal(args.where.courseId, 'course-a'); return { id: 'class-a', tenantId: 'tenant-a', courseId: 'course-a', periodId: 'period-a', memberIds: [] }; };
+  db.academicPeriod.findFirst = async args => { assert.deepEqual(args.where, { id: 'period-a', tenantId: 'tenant-a', courseId: 'course-a', archivedAt: null }); return { id: 'period-a' }; };
   db.user.count = async args => { assert.equal(args.where.tenantId, 'tenant-a'); assert.equal(args.where.courseId, 'course-a'); return 0; };
   assert.equal((await request('/classes/class-a', 'PATCH', { nome: 'Turma', memberIds: ['foreign'], expectedUpdatedAt: version })).status, 400);
   assert.equal((await request('/classes/class-a', 'PATCH', { nome: 'Turma', memberIds: [], courseId: 'course-b', expectedUpdatedAt: version })).status, 400);
@@ -49,7 +50,7 @@ test('teacher edits only own course classes and cannot add foreign students', as
 
 test('archiving a class preserves existing historical members without requiring active enrollment', async () => {
   actor = { ...actor, role: 'coord' };
-  db.classGroup.findFirst = async () => ({ id: 'class-a', courseId: 'course-a', memberIds: ['former-student'] });
+  db.classGroup.findFirst = async () => ({ id: 'class-a', tenantId: 'tenant-a', courseId: 'course-a', periodId: null, memberIds: ['former-student'] });
   db.classGroup.updateMany = async args => { assert.deepEqual(args.data.memberIds, ['former-student']); assert.ok(args.data.archivedAt); return { count: 1 }; };
   assert.equal((await request('/classes/class-a', 'PATCH', { nome: 'Turma', memberIds: ['former-student'], archived: true, expectedUpdatedAt: version })).status, 200);
 });

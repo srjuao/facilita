@@ -12,7 +12,7 @@ function reset(role = 'coord') {
   db.$transaction = async callback => callback(db);
   db.$queryRaw = async () => [];
   db.tenant.findFirst = async () => ({ id: 'tenant', ativo: true });
-  db.module.findUnique = async () => ({ id: 'module', courseId: 'course', periodId: null });
+  db.module.findUnique = async () => ({ id: 'module', courseId: 'course', periodId: 'period' });
   db.module.updateMany = async args => { assert.deepEqual(args.where, { id: 'module', updatedAt: new Date(stamp) }); return { count }; };
   db.lesson.findUnique = async () => ({ id: 'lesson', module: { courseId: 'course' } });
   db.lesson.updateMany = async args => { assert.equal(args.data.videoUrl, undefined); return { count }; };

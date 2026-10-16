@@ -28,7 +28,8 @@ async function loadDirectory(signal: AbortSignal): Promise<Directory> {
 type ManagedRecord = { updatedAt: string; archivedAt: string | null };
 type Department = ManagedRecord & { id: string; nome: string };
 type Notice = ManagedRecord & { id: string; title: string; body: string; createdAt: string; author?: { nome: string } };
-type ClassRoom = ManagedRecord & { id: string; nome: string; courseId: string; course?: { id: string; nome: string }; memberIds: string[] };
+type ClassRoom = ManagedRecord & { id: string; nome: string; courseId: string; periodId: string | null; course?: { id: string; nome: string }; period?: { id: string; nome: string } | null; memberIds: string[] };
+type ClassPeriod = { id: string; nome: string; courseId: string; archivedAt: string | null };
 type Conversation = ManagedRecord & { id: string; nome: string; memberIds: string[]; createdAt: string };
 async function loadConversations(signal: AbortSignal): Promise<Conversation[]> {
   const rooms = new Map<string, Conversation>();
@@ -47,7 +48,7 @@ async function loadConversations(signal: AbortSignal): Promise<Conversation[]> {
 type Message = { id: string; body: string; sender: { id: string; nome: string }; createdAt: string };
 const descriptions = {
   notices: ['Avisos da instituição', 'Comunicados publicados pela equipe para a comunidade acadêmica.'],
-  classes: ['Turmas', 'Organize os participantes de cada curso em turmas.'],
+  classes: ['Turmas', 'Vincule cada turma a um curso e período, depois escolha seus participantes.'],
   team: ['Equipe e departamentos', 'Organize as pessoas e defina o que cada professor pode gerenciar.'],
   chat: ['Conversas', 'Um espaço da instituição para conversas individuais e em grupo.'],
 };
@@ -169,7 +170,7 @@ function Classes({ canManage, directory }: { canManage: boolean; directory: Dire
   const [classes, setClasses] = useState<ClassRoom[]>([]), [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(''), [retry, setRetry] = useState(0), [archived, setArchived] = useState(false);
   const [open, setOpen] = useState(false), [editing, setEditing] = useState<ClassRoom | null>(null);
-  const [nome, setNome] = useState(''), [courseId, setCourseId] = useState(''), [members, setMembers] = useState<string[]>([]);
+  const [nome, setNome] = useState(''), [courseId, setCourseId] = useState(''), [periodId, setPeriodId] = useState(''), [periods, setPeriods] = useState<ClassPeriod[]>([]), [periodsLoading, setPeriodsLoading] = useState(false), [periodsError, setPeriodsError] = useState(''), [members, setMembers] = useState<string[]>([]);
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [success, setSuccess] = useState('');
   const lock = useRef(false), editor = useRef<HTMLFormElement>(null);
   useEffect(() => { if (open) { editor.current?.focus(); editor.current?.scrollIntoView({ block: 'nearest' }); } }, [open, editing]);
@@ -178,13 +179,23 @@ function Classes({ canManage, directory }: { canManage: boolean; directory: Dire
     api.get<ClassRoom[]>('/institution/classes', { signal: controller.signal, params: { archived: canManage && archived } }).then(response => { if (!controller.signal.aborted) setClasses(response.data); }).catch(failure => { if (!controller.signal.aborted) setLoadError(errorText(failure, 'Não foi possível carregar as turmas.')); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [retry, archived, canManage]);
+  useEffect(() => {
+    if (!open || !courseId) { setPeriods([]); setPeriodsError(''); setPeriodsLoading(false); return; }
+    const controller = new AbortController();
+    setPeriodsLoading(true); setPeriodsError('');
+    api.get<ClassPeriod[]>('/institution/periods', { signal: controller.signal, params: { courseId } })
+      .then(response => { if (!controller.signal.aborted) setPeriods(response.data.filter(period => period.courseId === courseId && !period.archivedAt)); })
+      .catch(failure => { if (!controller.signal.aborted) { setPeriods([]); setPeriodsError(errorText(failure, 'Não foi possível carregar os períodos deste curso.')); } })
+      .finally(() => { if (!controller.signal.aborted) setPeriodsLoading(false); });
+    return () => controller.abort();
+  }, [open, courseId, retry]);
   const eligible = directory.users.filter(person => person.courseId === courseId && ['aluno', 'professor'].includes(person.role));
   async function create(event: React.FormEvent) {
     event.preventDefault(); if (lock.current) return; lock.current = true; setBusy(true); setError(''); setSuccess('');
     try {
-      const data = { nome: nome.trim(), courseId, memberIds: members, ...(editing ? { expectedUpdatedAt: editing.updatedAt } : {}) };
+      const data = { nome: nome.trim(), courseId, periodId, memberIds: members, ...(editing ? { expectedUpdatedAt: editing.updatedAt } : {}) };
       if (editing) await api.patch('/institution/classes/' + encodeURIComponent(editing.id), data); else await api.post('/institution/classes', data);
-      setNome(''); setCourseId(''); setMembers([]); setOpen(false); setEditing(null); setRetry(value => value + 1); setSuccess(editing ? 'Turma atualizada.' : 'Turma criada.');
+      setNome(''); setCourseId(''); setPeriodId(''); setMembers([]); setOpen(false); setEditing(null); setRetry(value => value + 1); setSuccess(editing ? 'Turma atualizada.' : 'Turma criada.');
     } catch (failure) { setError(errorText(failure, 'Não foi possível salvar a turma.')); }
     finally { lock.current = false; setBusy(false); }
   }
@@ -194,8 +205,23 @@ function Classes({ canManage, directory }: { canManage: boolean; directory: Dire
     catch (failure) { setError(errorText(failure, 'Não foi possível alterar a turma.')); }
     finally { lock.current = false; setBusy(false); }
   }
-  return <><div className="iw-toolbar">{canManage ? <ArchiveTabs archived={archived} disabled={busy} onChange={value => { setArchived(value); setOpen(false); }} /> : <p>{classes.length} turmas disponíveis</p>}{canManage && <button className="btn primary" disabled={busy} aria-expanded={open} onClick={() => { setEditing(null); setNome(''); setCourseId(''); setMembers([]); setOpen(true); }}><Plus size={17} />Nova turma</button>}</div><Feedback error={error} success={success} />{open && <form ref={editor} tabIndex={-1} className="iw-panel iw-form" onSubmit={create}><h2>{editing ? 'Editar turma e participantes' : 'Criar turma'}</h2>{!directory.courses.length && <p className="iw-feedback">Cadastre um curso em Gestão de cursos e aulas antes de criar uma turma.</p>}<div className="iw-fields"><label>Nome da turma<input required maxLength={100} disabled={busy} value={nome} onChange={event => setNome(event.target.value)} /></label><label>Curso<select required disabled={busy || !!editing} value={courseId} onChange={event => { setCourseId(event.target.value); setMembers([]); }}><option value="">Selecione um curso</option>{directory.courses.map(course => <option value={course.id} key={course.id}>{course.nome}</option>)}</select></label></div><fieldset disabled={busy || !courseId} className="iw-reset-fieldset"><MemberPicker users={eligible} selected={members} onChange={setMembers} /></fieldset><div className="iw-actions"><button className="btn" type="button" disabled={busy} onClick={() => setOpen(false)}>Cancelar</button><button className="btn primary" disabled={busy || !courseId || !nome.trim()}>{busy ? 'Salvando…' : editing ? 'Salvar turma' : 'Criar turma'}</button></div></form>}
-    {loading ? <p role="status">Carregando turmas…</p> : loadError ? <div className="iw-panel"><Feedback error={loadError} /><button className="btn" onClick={() => setRetry(value => value + 1)}>Tentar novamente</button></div> : classes.length ? <div className="iw-class-list">{classes.map(room => <article className="iw-panel iw-class" key={room.id}><Users size={22} /><div><h2>{room.nome}</h2><p>{room.course?.nome || directory.courses.find(course => course.id === room.courseId)?.nome || 'Curso da instituição'}</p><span className="iw-count">{room.memberIds.length} participantes</span>{canManage && <div className="iw-record-actions"><button className="btn" disabled={busy} onClick={() => { setEditing(room); setNome(room.nome); setCourseId(room.courseId); setMembers(room.memberIds); setOpen(true); }}>Editar<span className="iw-sr-only"> {room.nome}</span></button><button className="btn" disabled={busy} onClick={() => void archive(room)}>{room.archivedAt ? 'Restaurar' : 'Arquivar'}<span className="iw-sr-only"> {room.nome}</span></button></div>}</div></article>)}</div> : <Empty title={archived ? 'Nenhuma turma arquivada' : 'Nenhuma turma disponível'}>{canManage ? 'Crie uma turma e selecione os participantes do curso. Arquivar não apaga os registros.' : 'As turmas às quais você pertence aparecerão aqui.'}</Empty>}
+  return <>
+    <div className="iw-toolbar">{canManage ? <ArchiveTabs archived={archived} disabled={busy} onChange={value => { setArchived(value); setOpen(false); }} /> : <p>{classes.length} turmas disponíveis</p>}{canManage && <button className="btn primary" disabled={busy} aria-expanded={open} onClick={() => { setEditing(null); setNome(''); setCourseId(''); setPeriodId(''); setMembers([]); setOpen(true); }}><Plus size={17} />Nova turma</button>}</div>
+    <Feedback error={error} success={success} />
+    {open && <form ref={editor} tabIndex={-1} className="iw-panel iw-form" onSubmit={create}>
+      <h2>{editing ? 'Editar turma e participantes' : 'Criar turma'}</h2>
+      {!directory.courses.length && <p className="iw-feedback">Crie um curso em Cursos e estrutura antes de cadastrar uma turma.</p>}
+      <div className="iw-fields">
+        <label>Nome da turma<input required maxLength={100} disabled={busy} value={nome} onChange={event => setNome(event.target.value)} /></label>
+        <label>Curso<select required disabled={busy || !!editing} value={courseId} onChange={event => { setCourseId(event.target.value); setPeriodId(''); setMembers([]); }}><option value="">Selecione um curso</option>{directory.courses.map(course => <option value={course.id} key={course.id}>{course.nome}</option>)}</select></label>
+        <label>Período<select required disabled={busy || !courseId || periodsLoading} value={periodId} onChange={event => setPeriodId(event.target.value)}><option value="">{periodsLoading ? 'Carregando períodos…' : 'Selecione um período'}</option>{periods.map(period => <option value={period.id} key={period.id}>{period.nome}</option>)}</select></label>
+      </div>
+      {periodsError && <Feedback error={periodsError} />}
+      {courseId && !periodsLoading && !periodsError && !periods.length && <p className="iw-feedback">Este curso ainda não tem período ativo. Cadastre um período em Cursos e estrutura antes de criar a turma.</p>}
+      <fieldset disabled={busy || !courseId || !periodId} className="iw-reset-fieldset"><MemberPicker users={eligible} selected={members} onChange={setMembers} /></fieldset>
+      <div className="iw-actions"><button className="btn" type="button" disabled={busy} onClick={() => setOpen(false)}>Cancelar</button><button className="btn primary" disabled={busy || !courseId || !periodId || !nome.trim()}>{busy ? 'Salvando…' : editing ? 'Salvar turma' : 'Criar turma'}</button></div>
+    </form>}
+    {loading ? <p role="status">Carregando turmas…</p> : loadError ? <div className="iw-panel"><Feedback error={loadError} /><button className="btn" onClick={() => setRetry(value => value + 1)}>Tentar novamente</button></div> : classes.length ? <div className="iw-class-list">{classes.map(room => <article className="iw-panel iw-class" key={room.id}><Users size={22} /><div><h2>{room.nome}</h2><p>{room.course?.nome || directory.courses.find(course => course.id === room.courseId)?.nome || 'Curso da instituição'} · {room.period?.nome || 'Período ainda não vinculado'}</p><span className="iw-count">{room.memberIds.length} participantes</span>{canManage && <div className="iw-record-actions"><button className="btn" disabled={busy} onClick={() => { setEditing(room); setNome(room.nome); setCourseId(room.courseId); setPeriodId(room.periodId || ''); setMembers(room.memberIds); setOpen(true); }}>Editar<span className="iw-sr-only"> {room.nome}</span></button><button className="btn" disabled={busy} onClick={() => void archive(room)}>{room.archivedAt ? 'Restaurar' : 'Arquivar'}<span className="iw-sr-only"> {room.nome}</span></button></div>}</div></article>)}</div> : <Empty title={archived ? 'Nenhuma turma arquivada' : 'Nenhuma turma disponível'}>{canManage ? 'Crie uma turma em um curso e período. Arquivar não apaga os registros.' : 'As turmas às quais você pertence aparecerão aqui.'}</Empty>}
   </>;
 }
 

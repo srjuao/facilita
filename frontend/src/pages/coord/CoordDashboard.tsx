@@ -22,7 +22,7 @@ export const CoordDashboard: React.FC<{ onNavigate: (view: string) => void }> = 
       {course && <div className="grid g3">
         {[['Alunos cadastrados', students.length], ['Matérias cadastradas', course?.modules?.length || 0], ['Provas disponíveis', user?.tenant?.plan?.provas === false ? 'Não incluídas' : course?.exams?.length || 0]].map(([label, value]) => <div className="card kpi" key={label}><span className="lab">{label}</span><div className="val num">{value}</div></div>)}
       </div>}
-      <section className="card" style={{ marginTop: 24 }}><h2>{!course ? 'Comece pela configuração da unidade' : students.length ? 'Acompanhamento dos alunos' : 'Este curso ainda não tem alunos'}</h2><p className="muted">{!course ? 'Cadastre os cursos da instituição e vincule os professores para iniciar a operação.' : 'Os indicadores aparecem conforme os alunos e conteúdos forem cadastrados. Ainda não há histórico de engajamento para apresentar.'}</p><button className="btn primary" onClick={() => onNavigate(!course ? 'co-setup' : 'co-alunos')}>{!course ? 'Gerenciar unidade e equipe' : 'Gerenciar alunos'}</button></section>
+      <section className="card" style={{ marginTop: 24 }}><h2>{!course ? 'Comece pela estrutura dos cursos' : students.length ? 'Acompanhamento dos alunos' : 'Este curso ainda não tem alunos'}</h2><p className="muted">{!course ? 'Crie um curso e organize seus períodos, matérias e aulas.' : 'Os indicadores aparecem conforme os alunos e conteúdos forem cadastrados. Ainda não há histórico de engajamento para apresentar.'}</p><button className="btn primary" onClick={() => onNavigate(!course ? 'co-gestao' : 'co-alunos')}>{!course ? 'Criar cursos e estrutura' : 'Gerenciar alunos'}</button></section>
     </>}
   </div></div>;
 };

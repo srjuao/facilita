@@ -360,6 +360,7 @@ model AcademicPeriod {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   modules Module[]
+  classGroups ClassGroup[]
   @@index([tenantId, courseId])
 }
 
@@ -383,11 +384,14 @@ model ClassGroup {
   id String @id @default(cuid())
   tenantId String
   courseId String
+  periodId String?
   nome String
   memberIds String[] @default([])
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  period AcademicPeriod? @relation(fields: [periodId], references: [id], onDelete: SetNull)
   @@index([tenantId, courseId])
+  @@index([periodId])
 }
 
 model Conversation {
