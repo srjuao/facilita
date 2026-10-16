@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { TopBar } from '../../components/TopBar';
 import api from '../../api/client';
-import { Subscription, money } from './plans';
+import { Subscription, money, suggestedUnit } from './plans';
 import './SuperAdminPlans.css';
 import './SuperAdminFinancial.css';
 
@@ -28,6 +28,7 @@ export const SuperAdminFinancial: React.FC<{ onNavigate: (view: string) => void 
   const [success, setSuccess] = useState('');
   const [editing, setEditing] = useState<{ tenantId: string; version: number | null; terms: Terms } | null>(null);
   const [unit, setUnit] = useState('');
+  const [unitManual, setUnitManual] = useState(false);
   const [issuing, setIssuing] = useState('');
   const [competence, setCompetence] = useState(today().slice(0, 7));
   const [selected, setSelected] = useState<Invoice | null>(null);
@@ -57,8 +58,15 @@ export const SuperAdminFinancial: React.FC<{ onNavigate: (view: string) => void 
     setError(''); setSuccess('');
     setEditing({ tenantId: contract?.tenantId || '', version: contract?.version ?? null, terms: contract ? { ...contract } : { ...emptyTerms } });
     setUnit(contract ? (contract.unitCents / 100).toFixed(2) : '');
+    setUnitManual(!!contract);
   };
-  const update = (key: keyof Terms, value: string | number) => setEditing(old => old ? { ...old, terms: { ...old.terms, [key]: value } } : old);
+  const update = (key: keyof Terms, value: string | number) => {
+    if (key === 'minimumStudents' && editing && !unitManual) {
+      const plan = tenants.find(item => item.tenantId === editing.tenantId)?.plan;
+      setUnit(suggestedUnit(plan, Number(value)));
+    }
+    setEditing(old => old ? { ...old, terms: { ...old.terms, [key]: value } } : old);
+  };
   const current = contracts.find(item => item.tenantId === issuing);
   const currentLinked = !!tenants.find(item => item.tenantId === issuing && item.ativo && item.plan);
   const pending = tenants.filter(item => item.ativo && (!item.plan || !item.billingContract));
@@ -78,12 +86,12 @@ export const SuperAdminFinancial: React.FC<{ onNavigate: (view: string) => void 
     {error && <div role="alert" className="inline-form-error">{error}</div>}{success && <p className="pf-success" role="status">{success}</p>}
     <nav className="pf-tabs" aria-label="Seções do financeiro"><button aria-current={tab === 'contracts' ? 'page' : undefined} onClick={() => setTab('contracts')}>Contratos <span>{contracts.length}</span></button><button aria-current={tab === 'invoices' ? 'page' : undefined} onClick={() => setTab('invoices')}>Cobranças</button><button onClick={() => onNavigate('sa-plans')}>Planos e recursos ↗</button></nav>
     {loading && <p role="status">Carregando financeiro…</p>}
-    {!loading && pending.length > 0 && <section className="pf-pending" aria-labelledby="pf-pending-title"><div><h2 id="pf-pending-title">Instituições aguardando cobrança <span>{pending.length}</span></h2><p>O plano e as condições de pagamento precisam estar vinculados antes de emitir a primeira fatura.</p></div><ul>{pending.map(item => <li key={item.tenantId}><strong>{item.nome}</strong><span>{item.plan ? 'Plano vinculado · falta valor contratado e vencimento' : 'Sem plano vinculado'}</span></li>)}</ul><button className="primary" onClick={() => onNavigate('sa-plans')}>Configurar planos e cobrança</button></section>}
+    {!loading && pending.length > 0 && <section className="pf-pending" aria-labelledby="pf-pending-title"><div><h2 id="pf-pending-title">Instituições aguardando cobrança <span>{pending.length}</span></h2><p>O plano e as condições de pagamento precisam estar vinculados antes de emitir a primeira fatura.</p></div><ul>{pending.map(item => <li key={item.tenantId}><strong>{item.nome}</strong><span>{item.plan ? 'Plano vinculado · falta confirmar mínimo, vencimento e dados de cobrança' : 'Sem plano vinculado'}</span></li>)}</ul><button className="primary" onClick={() => onNavigate('sa-plans')}>Configurar planos e cobrança</button></section>}
     {tab === 'contracts' && <>
       <div className="pf-heading"><div><h2>Contratos por instituição</h2><p>O preço e a franquia são definidos aqui. Os recursos de acesso continuam no plano.</p></div><button className="primary" disabled={busy || loading} onClick={() => openEditor()}>Novo contrato</button></div>
       {editing && <form className="pf-editor" onSubmit={saveContract}><h2>{editing.version === null ? 'Cadastrar contrato' : 'Editar contrato'}</h2><fieldset disabled={busy}>
-        <label>Instituição<select required disabled={editing.version !== null} value={editing.tenantId} onChange={e => { const row = tenants.find(t => t.tenantId === e.target.value); setEditing({ ...editing, tenantId: e.target.value, terms: { ...editing.terms, billingName: row?.nome || '' } }); }}><option value="">Selecione a instituição</option>{tenants.filter(t => t.tenantId === editing.tenantId || (t.ativo && !!t.plan && !contracts.some(c => c.tenantId === t.tenantId))).map(t => <option key={t.tenantId} value={t.tenantId}>{t.nome}</option>)}</select></label>
-        <div className="pf-grid"><label>Mínimo contratado de alunos<input type="number" min="1" max="2147483647" step="1" required value={editing.terms.minimumStudents} onChange={e => update('minimumStudents', Number(e.target.value))} /></label><label>Preço por aluno (R$)<input inputMode="decimal" required value={unit} placeholder="0,00" onChange={e => setUnit(e.target.value)} /></label><label>Dia do vencimento<input type="number" min="1" max="28" step="1" required value={editing.terms.dueDay} onChange={e => update('dueDay', Number(e.target.value))} /></label></div>
+        <label>Instituição<select required disabled={editing.version !== null} value={editing.tenantId} onChange={e => { const row = tenants.find(t => t.tenantId === e.target.value); setEditing({ ...editing, tenantId: e.target.value, terms: { ...editing.terms, billingName: row?.nome || '' } }); if (!unitManual) setUnit(suggestedUnit(row?.plan, editing.terms.minimumStudents)); }}><option value="">Selecione a instituição</option>{tenants.filter(t => t.tenantId === editing.tenantId || (t.ativo && !!t.plan && !contracts.some(c => c.tenantId === t.tenantId))).map(t => <option key={t.tenantId} value={t.tenantId}>{t.nome}</option>)}</select></label>
+        <div className="pf-grid"><label>Mínimo contratado de alunos<input type="number" min="1" max="2147483647" step="1" required value={editing.terms.minimumStudents} onChange={e => update('minimumStudents', Number(e.target.value))} /></label><label>Preço por aluno (R$) · sugerido pelo plano<input inputMode="decimal" required value={unit} placeholder="0,00" onChange={e => { setUnit(e.target.value); setUnitManual(true); }} /></label><label>Dia do vencimento<input type="number" min="1" max="28" step="1" required value={editing.terms.dueDay} onChange={e => update('dueDay', Number(e.target.value))} /></label></div>
         <h3>Instituição contratante</h3><div className="pf-grid">{([['billingName', 'Razão social / nome', 180], ['billingDocument', 'CNPJ / CPF', 60], ['billingEmail', 'E-mail do financeiro', 254], ['billingAddress', 'Endereço completo', 500]] as const).map(([key, label, max]) => <label key={key}>{label}<input type={key === 'billingEmail' ? 'email' : 'text'} maxLength={max} required value={editing.terms[key]} onChange={e => update(key, e.target.value)} /></label>)}</div>
         <h3>Emitente da cobrança</h3><div className="pf-grid">{([['issuerName', 'Razão social / nome', 180], ['issuerDocument', 'CNPJ / CPF', 60], ['issuerAddress', 'Endereço completo', 500]] as const).map(([key, label, max]) => <label key={key}>{label}<input maxLength={max} required value={editing.terms[key]} onChange={e => update(key, e.target.value)} /></label>)}</div>
         <label>Instruções de pagamento<textarea maxLength={2000} rows={3} value={editing.terms.paymentInstructions} placeholder="Informe a forma de pagamento já combinada com o cliente." onChange={e => update('paymentInstructions', e.target.value)} /></label>

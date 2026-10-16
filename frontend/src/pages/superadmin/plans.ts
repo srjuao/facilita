@@ -41,3 +41,8 @@ export interface BillingTerms {
 export const money = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 export const priceLabel = (plan: Plan) => plan.billingMode === 'FAIXAS' ? 'Por aluno · faixas progressivas' : `${money(plan.priceCents)} / ${plan.billingMode === 'FIXO' ? 'mês' : 'aluno/mês'}`;
 export const estimatePlan = (plan: Plan, students: number) => plan.billingMode === 'FAIXAS' ? calculatePrice(students, plan.pricePoints).totalCents : plan.priceCents * (plan.billingMode === 'FIXO' ? 1 : students);
+export const suggestedUnit = (plan: Plan | null | undefined, students: number) => {
+  if (!plan || !Number.isSafeInteger(students) || students < 1 || plan.billingMode === 'FIXO') return '';
+  try { return (Math.round(estimatePlan(plan, students) / students) / 100).toFixed(2); }
+  catch { return ''; }
+};
