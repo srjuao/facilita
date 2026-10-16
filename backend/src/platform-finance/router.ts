@@ -17,8 +17,9 @@ const wrap = (fn: (req: AuthRequest, res: Response) => Promise<unknown>) => (req
 async function actor(db: Prisma.TransactionClient, req: AuthRequest, lock = false) {
   if (!req.user?.id) throw new PlanError(401, 'Entre novamente.');
   if (lock) await db.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${req.user.id} FOR UPDATE`;
-  const user = await db.user.findUnique({ where: { id: req.user.id }, select: { id: true, nome: true, role: true, disabledAt: true, tenantId: true, tenant: { select: { ativo: true } } } });
-  if (!user || user.disabledAt || user.role !== 'superadmin' || (user.tenantId && !user.tenant?.ativo)) throw new PlanError(403, 'Acesso exclusivo do superadmin ativo.');
+  const user = await db.user.findUnique({ where: { id: req.user.id }, select: { id: true, nome: true, role: true, disabledAt: true } });
+  // Superadmin is platform-wide; a legacy institution link cannot revoke it.
+  if (!user || user.disabledAt || user.role !== 'superadmin') throw new PlanError(403, 'Acesso exclusivo do superadmin ativo.');
   return user;
 }
 async function tenant(tx: Prisma.TransactionClient, id: string) {

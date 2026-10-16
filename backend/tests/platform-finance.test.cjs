@@ -45,6 +45,19 @@ test('invoice snapshots server contract and counts, ignores forged totals', asyn
   assert.equal(result.body.invoice.events.create.actorId, 'admin');
   assert.equal(result.body.invoice.contractVersion, 0);
 });
+test('global superadmin can read and issue despite an inactive legacy institution link', async () => {
+  const previous = account;
+  account = { ...account, tenantId: 'legacy-inactive', tenant: { ativo: false } };
+  db.platformContract.findMany = async () => [];
+  db.user.groupBy = async () => [];
+  db.platformInvoice.findMany = async () => [];
+  try {
+    assert.equal((await request('/', 'GET')).code, 200);
+    assert.equal((await request('/invoices', 'POST', { tenantId: 'tenant-a', competence: '2026-10', expectedContractVersion: 0 })).code, 201);
+    account = { ...account, disabledAt: new Date() };
+    assert.equal((await request('/', 'GET')).code, 403);
+  } finally { account = previous; }
+});
 test('duplicate competency stays forbidden after cancellation and changed contract conflicts', async () => {
   assert.equal((await request('/invoices', 'POST', { tenantId: 'tenant-a', competence: '2026-10', expectedContractVersion: 1 })).code, 409);
   tx.platformInvoice.findUnique = async () => ({ id: 'invoice', status: 'CANCELLED' });
