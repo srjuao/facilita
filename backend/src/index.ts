@@ -21,6 +21,7 @@ import { commerceRouter } from './commerce/router';
 import { staffRouter } from './institution/staff';
 import { assessmentRouter } from './assessments/router';
 import { contentManagementRouter } from './institution/content-management';
+import { platformFinanceRouter } from './platform-finance/router';
 import { requireInstitutionPermission, requireInstitutionSession } from './institution/policy';
 import path from 'path';
 
@@ -32,7 +33,7 @@ const PORT = process.env.PORT || 3001;
 const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim()).filter(Boolean) ?? [];
 app.use(cors({
   origin: allowedOrigins.length ? allowedOrigins : false,
-  methods: ['GET', 'POST', 'PATCH'],
+  methods: ['GET', 'POST', 'PATCH', 'PUT'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json({ limit: '1mb' }));
@@ -56,6 +57,7 @@ app.use('/api/institution-commerce', authenticateToken, commerceRouter);
 app.use('/api/institution-staff', authenticateToken, staffRouter);
 app.use('/api/assessments', authenticateToken, assessmentRouter);
 app.use('/api/content-management', authenticateToken, contentManagementRouter);
+app.use('/api/platform-finance', authenticateToken, platformFinanceRouter);
 app.get('/api/public/tenant-branding', getPublicTenantBranding);
 app.post('/api/public/leads', createPublicLead);
 app.get('/api/public/pricing', getPublicPricing);

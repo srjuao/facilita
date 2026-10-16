@@ -62,6 +62,70 @@ model Tenant {
   conversations Conversation[]
   planId    String?
   plan      Plan? @relation(fields: [planId], references: [id], onDelete: Restrict)
+  billingContract PlatformContract?
+  platformInvoices PlatformInvoice[]
+}
+
+model PlatformContract {
+  tenantId String @id
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  minimumStudents Int
+  unitCents Int
+  dueDay Int
+  billingName String
+  billingDocument String
+  billingAddress String
+  billingEmail String
+  issuerName String
+  issuerDocument String
+  issuerAddress String
+  paymentInstructions String
+  version Int @default(0)
+  updatedBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlatformInvoice {
+  id String @id @default(cuid())
+  number String @unique
+  tenantId String
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  competence String
+  dueDate DateTime
+  minimumStudents Int
+  activeStudents Int
+  billableStudents Int
+  unitCents Int
+  totalCents Int
+  contractVersion Int
+  billingName String
+  billingDocument String
+  billingAddress String
+  billingEmail String
+  issuerName String
+  issuerDocument String
+  issuerAddress String
+  paymentInstructions String
+  status String @default("OPEN")
+  version Int @default(0)
+  createdAt DateTime @default(now())
+  paidAt DateTime?
+  events PlatformInvoiceEvent[]
+  @@unique([tenantId, competence])
+  @@index([createdAt])
+}
+
+model PlatformInvoiceEvent {
+  id String @id @default(cuid())
+  invoiceId String
+  invoice PlatformInvoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  action String
+  note String
+  actorId String
+  actorName String
+  createdAt DateTime @default(now())
+  @@index([invoiceId, createdAt])
 }
 
 enum BillingMode {
