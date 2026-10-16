@@ -35,6 +35,7 @@ import { SuperAdminTenants } from './pages/superadmin/SuperAdminTenants';
 import { SuperAdminCourses } from './pages/superadmin/SuperAdminCourses';
 import { SuperAdminFinancial } from './pages/superadmin/SuperAdminFinancial';
 import { SuperAdminLogin } from './pages/superadmin/SuperAdminLogin';
+import { SuperAdminLeads } from './pages/superadmin/SuperAdminLeads';
 import { SuperAdminAccount } from './pages/superadmin/SuperAdminAccount';
 
 export const AppContent: React.FC = () => {
@@ -108,6 +109,7 @@ export const AppContent: React.FC = () => {
       case 'sa-tenants': return <SuperAdminTenants />;
       case 'sa-courses': return <SuperAdminCourses />;
       case 'sa-fin': return <SuperAdminFinancial />;
+      case 'sa-leads': return <SuperAdminLeads />;
       case 'sa-account': return <SuperAdminAccount />;
 
       default:

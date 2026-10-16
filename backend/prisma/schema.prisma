@@ -7,6 +7,32 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum LeadStage {
+  NOVO
+  CONTATO
+  PROPOSTA
+  GANHO
+  PERDIDO
+}
+
+model Lead {
+  id          String    @id @default(cuid())
+  nome        String
+  instituicao String
+  email       String
+  telefone    String
+  alunos      Int?
+  mensagem    String    @default("")
+  stage       LeadStage @default(NOVO)
+  notas       String    @default("")
+  consentAt   DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([createdAt])
+  @@index([stage])
+}
+
 model Tenant {
   id        String   @id
   nome      String

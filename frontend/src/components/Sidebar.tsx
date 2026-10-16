@@ -36,6 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     superadmin: [
       { sec: 'Plataforma' },
       { id: 'sa-overview', label: 'Visão geral', icon: <LayoutDashboard size={18} /> },
+      { id: 'sa-leads', label: 'Leads e contatos', icon: <MessageSquare size={18} /> },
       { id: 'sa-tenants', label: 'Faculdades', icon: <Building2 size={18} /> },
       { id: 'sa-courses', label: 'Cursos', icon: <BookOpen size={18} /> },
       { id: 'sa-fin', label: 'Financeiro', icon: <DollarSign size={18} /> },

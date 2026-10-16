@@ -12,6 +12,7 @@ import { createCoordCourse, createCoordTeacher, getCoordCourses } from './contro
 import { createModule, createLesson } from './controllers/content.controller';
 import { brandingUpload, handleBrandingUpload, upload, handleVideoUpload } from './controllers/upload.controller';
 import { authenticateToken, authorizeRoles } from './middleware/auth';
+import { createPublicLead, getLeads, updateLead } from './controllers/lead.controller';
 import path from 'path';
 
 dotenv.config();
@@ -39,6 +40,9 @@ app.post('/api/auth/login', login);
 app.get('/api/auth/me', authenticateToken, getMe);
 app.patch('/api/auth/password', authenticateToken, authorizeRoles('superadmin'), changePassword);
 app.get('/api/public/tenant-branding', getPublicTenantBranding);
+app.post('/api/public/leads', createPublicLead);
+app.get('/api/leads', authenticateToken, authorizeRoles('superadmin'), getLeads);
+app.patch('/api/leads/:id', authenticateToken, authorizeRoles('superadmin'), updateLead);
 
 // Uploads
 app.post('/api/upload/video', authenticateToken, authorizeRoles('superadmin', 'coord', 'professor'), upload.single('video'), handleVideoUpload);
