@@ -43,6 +43,9 @@ export interface Tenant {
   loginImageUrl: string;
   faviconUrl: string;
   browserTitle: string;
+  loginKicker: string;
+  loginTitle: string;
+  loginDescription: string;
   primaryColor: string;
   courses: Course[];
 }

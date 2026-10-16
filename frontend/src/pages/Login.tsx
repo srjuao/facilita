@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { WordMark } from '../components/WordMark';
+import { Tenant } from '../types';
 
 export const Login: React.FC<{ superAdmin?: boolean }> = ({ superAdmin = false }) => {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [brand, setBrand] = useState<{ nome: string; logoUrl: string; loginImageUrl: string; faviconUrl: string; browserTitle: string; primaryColor: string } | null>(null);
+  const [brand, setBrand] = useState<Tenant | null>(null);
   const loginVideo = Boolean(brand?.loginImageUrl && /\.mp4(?:\?|$)/i.test(brand.loginImageUrl));
 
   useEffect(() => {
@@ -49,10 +50,10 @@ export const Login: React.FC<{ superAdmin?: boolean }> = ({ superAdmin = false }
           </div>
         </div>
         <div>
-          <div className="login-art-kicker">{brand ? 'Conhecimento que conecta' : superAdmin ? 'Operação da plataforma' : 'Inteligência que aproxima'}</div>
-          <h1>{brand ? `Uma experiência feita para ${brand.nome}.` : superAdmin ? 'A visão central para cada instituição.' : 'O espaço certo para cada jornada acadêmica.'}</h1>
-          <p className="lead">
-            {superAdmin ? 'Gerencie faculdades, acessos, domínios e identidade de cada unidade com segurança e contexto.' : 'Uma plataforma para a instituição, coordenação e alunos seguirem juntos — com clareza, contexto e evolução em cada etapa.'}
+          <div className="login-art-kicker">{brand ? brand.loginKicker || 'Conhecimento que conecta' : superAdmin ? 'Operação da plataforma' : 'Inteligência que aproxima'}</div>
+          <h1 style={{ whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>{brand ? brand.loginTitle || `Uma experiência feita para ${brand.nome}.` : superAdmin ? 'A visão central para cada instituição.' : 'O espaço certo para cada jornada acadêmica.'}</h1>
+          <p className="lead" style={{ whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>
+            {brand?.loginDescription || (superAdmin ? 'Gerencie faculdades, acessos, domínios e identidade de cada unidade com segurança e contexto.' : 'Uma plataforma para a instituição, coordenação e alunos seguirem juntos — com clareza, contexto e evolução em cada etapa.')}
           </p>
           <div className="brand-list">
             {(superAdmin ? ['Faculdades', 'Acessos', 'Domínios', 'Identidade'] : ['Medicina', 'Odontologia', 'Enfermagem', 'Direito', 'Psicologia', 'Fisioterapia']).map((c) => (

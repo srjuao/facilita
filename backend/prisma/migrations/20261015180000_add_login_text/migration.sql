@@ -1,0 +1,4 @@
+ALTER TABLE "Tenant"
+  ADD COLUMN "loginKicker" TEXT NOT NULL DEFAULT '',
+  ADD COLUMN "loginTitle" TEXT NOT NULL DEFAULT '',
+  ADD COLUMN "loginDescription" TEXT NOT NULL DEFAULT '';

@@ -120,6 +120,14 @@ export const updateTenantBranding = async (req: AuthRequest, res: Response) => {
     const { logoUrl = '', loginImageUrl = '', faviconUrl = '', browserTitle = '', primaryColor = '#2f7dd1' } = req.body as Record<string, unknown>;
     const values = [logoUrl, loginImageUrl, faviconUrl, browserTitle, primaryColor];
     if (values.some(value => typeof value !== 'string')) return res.status(400).json({ error: 'Os dados de identidade são inválidos.' });
+    const textFields = { loginKicker: 100, loginTitle: 200, loginDescription: 1000 };
+    const loginTexts: Record<string, string> = {};
+    for (const [key, limit] of Object.entries(textFields)) {
+      const value = req.body[key];
+      if (value === undefined) continue;
+      if (typeof value !== 'string' || value.length > limit) return res.status(400).json({ error: `O campo ${key === 'loginKicker' ? 'chamada' : key === 'loginTitle' ? 'título' : 'apresentação'} deve ter até ${limit} caracteres.` });
+      loginTexts[key] = value.trim();
+    }
     if (!/^#[0-9a-fA-F]{6}$/.test(primaryColor as string)) return res.status(400).json({ error: 'Escolha uma cor hexadecimal válida.' });
     for (const url of [logoUrl, loginImageUrl, faviconUrl] as string[]) {
       const isRemoteHttps = /^https:\/\//.test(url);
@@ -129,6 +137,7 @@ export const updateTenantBranding = async (req: AuthRequest, res: Response) => {
     const updated = await prisma.tenant.update({
       where: { id: req.params.id },
       data: {
+        ...loginTexts,
         logoUrl: (logoUrl as string).trim(), loginImageUrl: (loginImageUrl as string).trim(),
         faviconUrl: (faviconUrl as string).trim(), browserTitle: (browserTitle as string).trim(),
         primaryColor: primaryColor as string
@@ -146,7 +155,7 @@ export const getPublicTenantBranding = async (req: Request, res: Response) => {
   if (!host.endsWith('.facilitaestudos.com.br')) return res.status(204).end();
   const tenant = await prisma.tenant.findFirst({
     where: { dominio: host, ativo: true },
-    select: { nome: true, dominio: true, logoUrl: true, loginImageUrl: true, faviconUrl: true, browserTitle: true, primaryColor: true }
+    select: { nome: true, dominio: true, logoUrl: true, loginImageUrl: true, faviconUrl: true, browserTitle: true, primaryColor: true, loginKicker: true, loginTitle: true, loginDescription: true }
   });
   return tenant ? res.json(tenant) : res.status(204).end();
 };

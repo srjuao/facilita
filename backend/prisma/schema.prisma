@@ -23,6 +23,9 @@ model Tenant {
   loginImageUrl String @default("")
   faviconUrl String @default("")
   browserTitle String @default("")
+  loginKicker String @default("")
+  loginTitle String @default("")
+  loginDescription String @default("")
   primaryColor String @default("#2f7dd1")
   courses   Course[]
   users     User[]
