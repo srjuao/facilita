@@ -94,6 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     ],
     professor: [
       { sec: 'Meu curso' },
+      { id: 'co-live', label: 'Aulas ao vivo', icon: <Radio size={18} /> },
       { id: 'co-notices', label: 'Avisos', icon: <FileText size={18} /> },
       { id: 'co-chat', label: 'Chat interno', icon: <MessageSquare size={18} /> },
       { id: 'co-conteudo', label: 'Materiais do curso', icon: <BookOpen size={18} /> },
@@ -111,6 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     ],
     aluno: [
       { id: 'al-inicio', label: 'Início', icon: <Home size={18} /> },
+      { id: 'al-live', label: 'Aulas ao vivo', icon: <Radio size={18} /> },
       { id: 'al-periodos', label: 'Períodos', icon: <Calendar size={18} /> },
       { id: 'al-materias', label: 'Matérias', icon: <BookOpen size={18} /> },
       { id: 'al-plano', label: 'Plano de estudos', icon: <Target size={18} /> },

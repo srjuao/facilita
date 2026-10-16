@@ -67,6 +67,7 @@ model Tenant {
   tuitionSettings TuitionSettings?
   tuitionAdjustments TuitionAdjustment[]
   tuitionInvoices TuitionInvoice[]
+  liveSessions LiveSession[]
 }
 
 model TuitionSettings {
@@ -270,6 +271,7 @@ model Course {
   entitlements CourseEntitlement[]
   accessEvents CourseAccessEvent[]
   accessRequests CourseAccessRequest[]
+  liveSessions LiveSession[]
 }
 
 model User {
@@ -299,6 +301,7 @@ model User {
   courseAccessRequests CourseAccessRequest[]
   courseAccessEvents CourseAccessEvent[] @relation("AccessStudent")
   authoredCourseAccessEvents CourseAccessEvent[] @relation("AccessActor")
+  createdLiveSessions LiveSession[]
 }
 
 model CourseEntitlement {
@@ -394,8 +397,33 @@ model ClassGroup {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   period AcademicPeriod? @relation(fields: [periodId], references: [id], onDelete: SetNull)
+  liveSessions LiveSession[]
   @@index([tenantId, courseId])
   @@index([periodId])
+}
+
+model LiveSession {
+  id String @id @default(cuid())
+  tenantId String
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  courseId String?
+  course Course? @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  classGroupId String?
+  classGroup ClassGroup? @relation(fields: [classGroupId], references: [id], onDelete: Restrict)
+  title String
+  startsAt DateTime
+  endsAt DateTime
+  status String @default("scheduled")
+  createdBy String
+  creator User @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  startedAt DateTime?
+  endedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([tenantId, startsAt])
+  @@index([tenantId, status])
+  @@index([courseId])
+  @@index([classGroupId])
 }
 
 model Conversation {

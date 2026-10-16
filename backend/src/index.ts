@@ -23,6 +23,7 @@ import { assessmentRouter } from './assessments/router';
 import { contentManagementRouter } from './institution/content-management';
 import { platformFinanceRouter } from './platform-finance/router';
 import { institutionFinanceRouter } from './institution-finance/router';
+import { liveRouter } from './live/router';
 import { requireInstitutionPermission, requireInstitutionSession } from './institution/policy';
 import path from 'path';
 
@@ -60,6 +61,7 @@ app.use('/api/assessments', authenticateToken, assessmentRouter);
 app.use('/api/content-management', authenticateToken, contentManagementRouter);
 app.use('/api/platform-finance', authenticateToken, platformFinanceRouter);
 app.use('/api/institution-finance', authenticateToken, institutionFinanceRouter);
+app.use('/api/live-sessions', authenticateToken, liveRouter);
 app.get('/api/public/tenant-branding', getPublicTenantBranding);
 app.post('/api/public/leads', createPublicLead);
 app.get('/api/public/pricing', getPublicPricing);

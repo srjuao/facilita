@@ -55,6 +55,7 @@ const descriptions = {
 };
 const roleName: Record<string, string> = { coord: 'Coordenação', professor: 'Professor', aluno: 'Aluno', superadmin: 'Superadmin', staff: 'Funcionário' };
 const permissionOptions = [
+  ['live.manage', 'Agendar e conduzir aulas ao vivo'],
   ['content.manage', 'Períodos, matérias e conteúdo do curso'],
   ['exams.manage', 'Gerenciar provas e atividades'],
   ['students.manage', 'Cadastro de alunos'],

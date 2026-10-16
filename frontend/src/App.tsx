@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { useAuth } from './auth/AuthContext';
 import { Login } from './pages/Login';
 import { Sidebar } from './components/Sidebar';
@@ -21,7 +21,6 @@ import { CoordDashboard } from './pages/coord/CoordDashboard';
 import { CoordStudents } from './pages/coord/CoordStudents';
 import { CoordSubs } from './pages/coord/CoordSubs';
 import { CoordAlerts } from './pages/coord/CoordAlerts';
-import { CoordLive } from './pages/coord/CoordLive';
 import { CoordExams } from './pages/coord/CoordExams';
 import { CoordUCs } from './pages/coord/CoordUCs';
 import { CoordContent } from './pages/coord/CoordContent';
@@ -43,6 +42,8 @@ import { SuperAdminLogin } from './pages/superadmin/SuperAdminLogin';
 import { SuperAdminPlans } from './pages/superadmin/SuperAdminPlans';
 import { SuperAdminLeads } from './pages/superadmin/SuperAdminLeads';
 import { SuperAdminAccount } from './pages/superadmin/SuperAdminAccount';
+
+const CoordLive = lazy(() => import('./pages/coord/CoordLive').then(module => ({ default: module.CoordLive })));
 
 export const AppContent: React.FC = () => {
   const { user, loading, logout } = useAuth();
@@ -73,6 +74,7 @@ export const AppContent: React.FC = () => {
 
   const renderView = () => {
     if (activeView === 'co-staff') return <StaffAccounts />;
+    if (activeView === 'co-live' || activeView === 'al-live') return <Suspense fallback={<p role="status" style={{ padding: 24 }}>Abrindo aulas ao vivo…</p>}><CoordLive /></Suspense>;
     if (activeView === 'co-finance' || activeView === 'al-finance') return <InstitutionFinancial />;
     if (activeView === 'co-sales' || activeView === 'al-store') return <PaidCourses onOpenCourse={courseId => { setSelectedPaidCourseId(courseId); setCurrentView('al-paid-course'); }} />;
     if (activeView === 'al-paid-course') return <CourseRecords title="Conteúdo do curso" kind="modules" courseId={selectedPaidCourseId} onOpenLesson={handleOpenLesson} onShowCatalog={() => setCurrentView('al-store')} onOpenExams={user.tenant?.plan?.provas === false ? undefined : () => setCurrentView('al-course-exams')} />;
@@ -86,7 +88,6 @@ export const AppContent: React.FC = () => {
     const records: Record<string, { title: string; kind: 'modules' | 'exams' | 'alerts' | 'live' | 'empty' }> = {
       'co-subs': { title: 'Turmas', kind: 'empty' },
       'co-alertas': { title: 'Alertas', kind: 'alerts' },
-      'co-live': { title: 'Alunos online', kind: 'live' },
       'co-provas': { title: 'Provas e simulados', kind: 'exams' },
       'co-conteudo': { title: 'Conteúdo', kind: 'modules' },
       'co-relatorio': { title: 'Relatórios', kind: 'empty' },
@@ -115,7 +116,6 @@ export const AppContent: React.FC = () => {
       case 'co-alunos': return <CoordStudents />;
       case 'co-subs': return <CoordSubs />;
       case 'co-alertas': return <CoordAlerts />;
-      case 'co-live': return <CoordLive />;
       case 'co-provas': return <CoordExams />;
       case 'co-ucs': return <ContentManager />;
       case 'co-conteudo': return <CoordContent />;

@@ -4,7 +4,7 @@ const { institutionRouter } = require('../dist/institution/router');
 const { institutionDb: db, effectivePermissions, cleanMembers, cleanText, requireInstitutionSession, requireInstitutionPermission } = require('../dist/institution/policy');
 
 test('institution permissions: coordinator all, teacher explicit grants, student none', () => {
-  assert.equal(effectivePermissions('coord', []).length, 6);
+  assert.equal(effectivePermissions('coord', []).length, 7);
   assert.ok(effectivePermissions('coord', []).includes('exams.manage'));
   assert.deepEqual(effectivePermissions('professor', ['content.manage', 'unknown']), ['content.manage']);
   assert.deepEqual(effectivePermissions('professor', []), []);

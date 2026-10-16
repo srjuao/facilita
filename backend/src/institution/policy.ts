@@ -3,7 +3,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth';
 
 export const institutionDb = new PrismaClient();
-export const PERMISSIONS = ['content.manage', 'students.manage', 'notices.manage', 'classes.manage', 'chat.create', 'exams.manage'] as const;
+export const PERMISSIONS = ['content.manage', 'students.manage', 'notices.manage', 'classes.manage', 'chat.create', 'exams.manage', 'live.manage'] as const;
 export const STAFF_PERMISSIONS = ['students.manage', 'notices.manage', 'chat.create', 'finance.manage'] as const;
 export type InstitutionPermission = typeof PERMISSIONS[number];
 export type InstitutionRequest = AuthRequest & { institution?: { id: string; tenantId: string; role: string; courseId: string | null; permissions: string[] } };

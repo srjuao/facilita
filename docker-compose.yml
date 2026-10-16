@@ -53,6 +53,10 @@ services:
       DATABASE_URL: postgresql://${DB_USER:?DB_USER must be set}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:-facilitaestudos}?schema=public
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://app.facilitaestudos.com.br}
+      LIVEKIT_URL: ${LIVEKIT_URL:-}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-}
+      LIVEKIT_ROOM_AUTO_CREATE_DISABLED: ${LIVEKIT_ROOM_AUTO_CREATE_DISABLED:-}
       NODE_ENV: production
     depends_on:
       migrate:
