@@ -302,6 +302,7 @@ model User {
   courseAccessEvents CourseAccessEvent[] @relation("AccessStudent")
   authoredCourseAccessEvents CourseAccessEvent[] @relation("AccessActor")
   createdLiveSessions LiveSession[]
+  facilitatedLiveRooms LiveRoom[] @relation("LiveRoomFacilitator")
 }
 
 model CourseEntitlement {
@@ -410,6 +411,8 @@ model LiveSession {
   course Course? @relation(fields: [courseId], references: [id], onDelete: Restrict)
   classGroupId String?
   classGroup ClassGroup? @relation(fields: [classGroupId], references: [id], onDelete: Restrict)
+  rooms LiveRoom[]
+  roomSize Int @default(30)
   title String
   startsAt DateTime
   endsAt DateTime
@@ -424,6 +427,20 @@ model LiveSession {
   @@index([tenantId, status])
   @@index([courseId])
   @@index([classGroupId])
+}
+
+model LiveRoom {
+  id String @id @default(cuid())
+  sessionId String
+  session LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  ordinal Int
+  label String
+  memberIds String[] @default([])
+  facilitatorId String?
+  facilitator User? @relation("LiveRoomFacilitator", fields: [facilitatorId], references: [id], onDelete: SetNull)
+  @@unique([sessionId, ordinal])
+  @@index([facilitatorId])
+  @@index([memberIds], type: Gin)
 }
 
 model Conversation {
