@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { login, getMe, changePassword } from './controllers/auth.controller';
+import { login, getMe, changePassword, updateProfile } from './controllers/auth.controller';
 import { createTenant, createTenantUser, getPublicTenantBranding, getTenants, getTenantById, getTenantUsers, updateTenantBranding, updateTenantStatus, updateTenantUser } from './controllers/tenant.controller';
 import { getCourseDetails } from './controllers/course.controller';
 import { createStudent, getStudents, getStudentById } from './controllers/student.controller';
@@ -44,6 +44,7 @@ app.get('/api/media/lessons/:id', streamLessonMedia);
 app.post('/api/auth/login', login);
 app.get('/api/auth/me', authenticateToken, getMe);
 app.patch('/api/auth/password', authenticateToken, authorizeRoles('superadmin'), changePassword);
+app.patch('/api/auth/profile', authenticateToken, authorizeRoles('superadmin'), updateProfile);
 app.get('/api/public/tenant-branding', getPublicTenantBranding);
 app.post('/api/public/leads', createPublicLead);
 app.get('/api/public/pricing', getPublicPricing);

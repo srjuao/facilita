@@ -3,9 +3,18 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { generateToken, AuthRequest } from '../middleware/auth';
 import { createChangePasswordHandler } from './change-password';
+import { createUpdateProfileHandler } from './update-profile';
 
 const prisma = new PrismaClient();
 const publicPlan = { select: { id: true, nome: true, videoAulas: true, provas: true, ia: true, studentLimit: true } } as const;
+
+export const updateProfile = createUpdateProfileHandler({
+  find: id => prisma.user.findUnique({ where: { id }, select: { id: true, role: true } }),
+  replace: async (id, profile) => {
+    const result = await prisma.user.updateMany({ where: { id, role: 'superadmin' }, data: profile });
+    return result.count === 1;
+  }
+});
 
 export const changePassword = createChangePasswordHandler({
   find: id => prisma.user.findUnique({ where: { id }, select: { id: true, role: true, password: true } }),

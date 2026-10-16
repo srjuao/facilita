@@ -18,4 +18,6 @@ test('dashboard visualizations and certificates do not fabricate measurements or
   const source = readFileSync(path.join(root, 'pages/superadmin/SuperAdminCourses.tsx'), 'utf8');
   assert.ok(!/\.previstos|\.adesao|\.alunos/.test(source));
   assert.match(source, /_count/);
+  assert.match(source, /const activeTenants = tenants\.filter\(tenant => tenant\.ativo\)/);
+  assert.match(source, /const allCourses = activeTenants\.flatMap/);
 });
