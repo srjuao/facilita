@@ -8,7 +8,6 @@ import {
   Menu, X,
   Users, 
   Layers, 
-  AlertTriangle, 
   Radio, 
   FileText, 
   Calendar, 
@@ -80,17 +79,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
       { id: 'co-dash', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
       { id: 'co-alunos', label: 'Alunos', icon: <Users size={18} /> },
       { id: 'co-subs', label: 'Turmas (SUBs)', icon: <Layers size={18} /> },
-      { id: 'co-alertas', label: 'Alertas', icon: <AlertTriangle size={18} /> },
+      { id: 'co-notices', label: 'Avisos', icon: <FileText size={18} /> },
+      { id: 'co-chat', label: 'Chat interno', icon: <MessageSquare size={18} /> },
       { id: 'co-live', label: 'Ao vivo', icon: <Radio size={18} /> },
       { id: 'co-provas', label: 'Provas e simulados', icon: <FileText size={18} /> },
       { sec: 'Curso' },
-      { id: 'co-ucs', label: 'Períodos e UCs', icon: <Calendar size={18} /> },
+      { id: 'co-ucs', label: 'Períodos e matérias', icon: <Calendar size={18} /> },
       { id: 'co-conteudo', label: 'Conteúdo', icon: <BookOpen size={18} /> },
       { id: 'co-gestao', label: 'Gestão Cursos & Aulas', icon: <Sliders size={18} /> },
       { id: 'co-setup', label: 'Unidade e equipe', icon: <Building2 size={18} /> },
+      { id: 'co-team', label: 'Departamentos e acessos', icon: <Users size={18} /> },
     ],
     professor: [
       { sec: 'Meu curso' },
+      { id: 'co-notices', label: 'Avisos', icon: <FileText size={18} /> },
+      { id: 'co-chat', label: 'Chat interno', icon: <MessageSquare size={18} /> },
+      { id: 'co-conteudo', label: 'Materiais do curso', icon: <BookOpen size={18} /> },
+      { id: 'co-subs', label: 'Turmas', icon: <Layers size={18} /> },
       { id: 'co-gestao', label: 'Conteúdo e aulas', icon: <BookOpen size={18} /> },
       { id: 'co-alunos', label: 'Alunos', icon: <Users size={18} /> },
     ],
@@ -103,11 +108,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
       { id: 'al-ia', label: 'IA Tira-Dúvidas', icon: <MessageSquare size={18} /> },
       { id: 'al-provas', label: 'Provas', icon: <FileText size={18} /> },
       { id: 'al-perfil', label: 'Perfil', icon: <User size={18} /> },
+      { id: 'al-notices', label: 'Avisos', icon: <FileText size={18} /> },
+      { id: 'al-classes', label: 'Minha turma', icon: <Users size={18} /> },
+      { id: 'al-chat', label: 'Chat interno', icon: <MessageSquare size={18} /> },
     ]
   };
 
   const plan = role !== 'superadmin' ? user.tenant?.plan : null;
-  const navItems = (NAVS[role] || NAVS.aluno).filter(item => !((item.id === 'al-ia' && plan?.ia === false) || (['al-provas', 'co-provas'].includes(item.id || '') && plan?.provas === false)));
+  const navItems = (NAVS[role] || NAVS.aluno).filter(item => !((item.id === 'al-ia' && plan?.ia === false) || (['al-provas', 'co-provas'].includes(item.id || '') && plan?.provas === false) || (role === 'professor' && ((item.id === 'co-gestao' && !user.permissions?.includes('content.manage')) || (item.id === 'co-alunos' && !user.permissions?.includes('students.manage'))))));
   const tenantName = user.tenant?.nome || (role === 'superadmin' ? 'Administração da plataforma' : 'Instituição não vinculada');
   const tenantLogo = user.role !== 'superadmin' ? user.tenant?.logoUrl : '';
 

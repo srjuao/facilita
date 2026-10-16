@@ -5,6 +5,8 @@ export interface User {
   papel: string;
   role: 'superadmin' | 'coord' | 'professor' | 'aluno';
   photo: number;
+  permissions?: string[];
+  departmentId?: string | null;
   tenantId?: string;
   courseId?: string;
   studentId?: number;

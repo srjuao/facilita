@@ -16,6 +16,8 @@ import { createPublicLead, getLeads, updateLead } from './controllers/lead.contr
 import { assignPlan, createPlan, getPlans, getSubscriptions, updatePlanStatus, getPublicPricing, getPricingSetting, updatePricingSetting } from './controllers/plan.controller';
 import { featureGate } from './controllers/plan-access';
 import { streamLessonMedia } from './controllers/media-access';
+import { institutionRouter } from './institution/router';
+import { requireInstitutionPermission, requireInstitutionSession } from './institution/policy';
 import path from 'path';
 
 dotenv.config();
@@ -45,6 +47,7 @@ app.post('/api/auth/login', login);
 app.get('/api/auth/me', authenticateToken, getMe);
 app.patch('/api/auth/password', authenticateToken, authorizeRoles('superadmin'), changePassword);
 app.patch('/api/auth/profile', authenticateToken, authorizeRoles('superadmin'), updateProfile);
+app.use('/api/institution', authenticateToken, institutionRouter);
 app.get('/api/public/tenant-branding', getPublicTenantBranding);
 app.post('/api/public/leads', createPublicLead);
 app.get('/api/public/pricing', getPublicPricing);
@@ -59,12 +62,12 @@ app.get('/api/subscriptions', authenticateToken, authorizeRoles('superadmin'), g
 app.patch('/api/tenants/:id/plan', authenticateToken, authorizeRoles('superadmin'), assignPlan);
 
 // Uploads
-app.post('/api/upload/video', authenticateToken, featureGate('videoAulas'), authorizeRoles('superadmin', 'coord', 'professor'), upload.single('video'), handleVideoUpload);
+app.post('/api/upload/video', authenticateToken, requireInstitutionPermission('content.manage'), featureGate('videoAulas'), authorizeRoles('superadmin', 'coord', 'professor'), upload.single('video'), handleVideoUpload);
 app.post('/api/tenants/:id/branding/upload', authenticateToken, authorizeRoles('superadmin'), brandingUpload.single('file'), handleBrandingUpload);
 
 // Tenants
-app.get('/api/tenants', authenticateToken, authorizeRoles('superadmin', 'coord'), getTenants);
-app.get('/api/tenants/:id', authenticateToken, authorizeRoles('superadmin', 'coord'), getTenantById);
+app.get('/api/tenants', authenticateToken, requireInstitutionSession, authorizeRoles('superadmin', 'coord'), getTenants);
+app.get('/api/tenants/:id', authenticateToken, requireInstitutionSession, authorizeRoles('superadmin', 'coord'), getTenantById);
 app.post('/api/tenants', authenticateToken, authorizeRoles('superadmin'), createTenant);
 app.patch('/api/tenants/:id/status', authenticateToken, authorizeRoles('superadmin'), updateTenantStatus);
 app.patch('/api/tenants/:id/branding', authenticateToken, authorizeRoles('superadmin'), updateTenantBranding);
@@ -73,23 +76,23 @@ app.patch('/api/tenants/:id/users/:userId', authenticateToken, authorizeRoles('s
 app.post('/api/tenants/:id/users', authenticateToken, authorizeRoles('superadmin'), createTenantUser);
 
 // Gestão da própria unidade pela coordenação.
-app.get('/api/coord/courses', authenticateToken, authorizeRoles('coord'), getCoordCourses);
-app.post('/api/coord/courses', authenticateToken, authorizeRoles('coord'), createCoordCourse);
-app.post('/api/coord/teachers', authenticateToken, authorizeRoles('coord'), createCoordTeacher);
+app.get('/api/coord/courses', authenticateToken, requireInstitutionSession, authorizeRoles('coord'), getCoordCourses);
+app.post('/api/coord/courses', authenticateToken, requireInstitutionPermission('content.manage'), authorizeRoles('coord'), createCoordCourse);
+app.post('/api/coord/teachers', authenticateToken, requireInstitutionPermission('content.manage'), authorizeRoles('coord'), createCoordTeacher);
 
 // Courses
 app.get('/api/courses/:id', authenticateToken, getCourseDetails);
-app.post('/api/modules', authenticateToken, authorizeRoles('coord', 'professor'), createModule);
-app.post('/api/modules/:id/lessons', authenticateToken, featureGate('videoAulas'), authorizeRoles('coord', 'professor'), createLesson);
+app.post('/api/modules', authenticateToken, requireInstitutionPermission('content.manage'), authorizeRoles('coord', 'professor'), createModule);
+app.post('/api/modules/:id/lessons', authenticateToken, requireInstitutionPermission('content.manage'), featureGate('videoAulas'), authorizeRoles('coord', 'professor'), createLesson);
 
 // Lessons
 app.get('/api/lessons', authenticateToken, featureGate('videoAulas'), getLessonsByModule);
 app.get('/api/lessons/:id', authenticateToken, featureGate('videoAulas'), getLessonById);
 
 // Students
-app.get('/api/students', authenticateToken, getStudents);
-app.post('/api/students', authenticateToken, authorizeRoles('coord', 'professor'), createStudent);
-app.get('/api/students/:id', authenticateToken, getStudentById);
+app.get('/api/students', authenticateToken, requireInstitutionSession, getStudents);
+app.post('/api/students', authenticateToken, requireInstitutionPermission('students.manage'), authorizeRoles('coord', 'professor'), createStudent);
+app.get('/api/students/:id', authenticateToken, requireInstitutionSession, getStudentById);
 
 // Chat IA
 app.get('/api/chat/history', authenticateToken, featureGate('ia'), getChatHistory);

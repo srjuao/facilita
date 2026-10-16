@@ -17,6 +17,7 @@ export interface AuthRequest extends Request {
     tenantId?: string;
     courseId?: string;
     studentId?: number;
+    permissions?: string[];
   };
 }
 

@@ -22,7 +22,7 @@ export const getCourseDetails = async (req: AuthRequest, res: Response) => {
 
     if (!course) return res.status(404).json({ error: 'Curso não encontrado' });
     const user = await currentAccess(req);
-    if (!canAccessCourse(req.user, course.id)) return res.status(403).json({ error: 'Acesso negado a este curso.' });
+    if (!(user.role === 'coord' && user.tenantId === course.tenantId) && !canAccessCourse(req.user, course.id)) return res.status(403).json({ error: 'Acesso negado a este curso.' });
     const plan = user.role === 'superadmin' ? null : user.tenant?.plan;
 
     const { students, ...courseData } = course;
@@ -37,7 +37,7 @@ export const getCourseDetails = async (req: AuthRequest, res: Response) => {
     };
 
     // An enrolled student may view course material, but must never receive peer records.
-    if (req.user?.role !== 'aluno') {
+    if (['superadmin', 'coord'].includes(user.role) || (user.role === 'professor' && user.permissions.includes('students.manage'))) {
       response.students = students.map(s => ({
         ...s,
         atividade: JSON.parse(s.atividade || '[]'),

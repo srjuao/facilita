@@ -10,7 +10,7 @@ export async function currentAccess(req: AuthRequest) {
   const user = req.user?.id ? await prisma.user.findUnique({ where: { id: req.user.id }, include: { tenant: { include: { plan: true } } } }) : null;
   if (!user) throw new PlanError(403, 'Conta não encontrada. Entre novamente.');
   if (user.role !== 'superadmin' && !user.tenant?.ativo) throw new PlanError(403, 'Esta instituição não está ativa.');
-  req.user = { id: user.id, email: user.email, role: user.role, tenantId: user.tenantId || undefined, courseId: user.courseId || undefined, studentId: user.studentId || undefined };
+  req.user = { id: user.id, email: user.email, role: user.role, tenantId: user.tenantId || undefined, courseId: user.courseId || undefined, studentId: user.studentId || undefined, permissions: user.permissions };
   return user;
 }
 export async function requireFeature(req: AuthRequest, feature: Feature) {

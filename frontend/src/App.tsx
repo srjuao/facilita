@@ -28,6 +28,7 @@ import { CoordContent } from './pages/coord/CoordContent';
 import { CoordReport } from './pages/coord/CoordReport';
 import { CoordCourseManager } from './pages/coord/CoordCourseManager';
 import { CoordUnitSetup } from './pages/coord/CoordUnitSetup';
+import { InstitutionWorkspace } from './pages/institution/InstitutionWorkspace';
 
 // SuperAdmin Pages
 import { SuperAdminOverview } from './pages/superadmin/SuperAdminOverview';
@@ -60,10 +61,13 @@ export const AppContent: React.FC = () => {
 
   // Roteamento padrão por papel caso não haja view selecionada
   const activeView = currentView === 'default'
-    ? user.role === 'superadmin' ? 'sa-overview' : user.role === 'coord' ? 'co-dash' : user.role === 'professor' ? 'co-gestao' : 'al-inicio'
+    ? user.role === 'superadmin' ? 'sa-overview' : user.role === 'coord' ? 'co-dash' : user.role === 'professor' ? 'co-notices' : 'al-inicio'
     : currentView;
 
   const renderView = () => {
+    const sections = { 'co-notices': 'notices', 'co-subs': 'classes', 'co-team': 'team', 'co-chat': 'chat', 'al-notices': 'notices', 'al-classes': 'classes', 'al-chat': 'chat' } as const;
+    if (activeView in sections) return <InstitutionWorkspace section={sections[activeView as keyof typeof sections]} />;
+    if (user.role === 'professor' && ((activeView === 'co-gestao' && !user.permissions?.includes('content.manage')) || (activeView === 'co-alunos' && !user.permissions?.includes('students.manage')))) return <section className="unit-setup"><div className="card"><h1>Acesso não autorizado</h1><p>A coordenação ainda não liberou esta função para sua conta.</p></div></section>;
     const plan = user.role !== 'superadmin' ? user.tenant?.plan : null;
     if ((activeView === 'al-ia' && plan?.ia === false) || (['al-provas', 'co-provas'].includes(activeView) && plan?.provas === false) || (activeView === 'al-aula' && plan?.videoAulas === false)) return <section className="unit-setup"><div className="card"><h1>Recurso não incluído no plano</h1><p>Consulte a coordenação da instituição sobre os recursos contratados.</p><button className="ghost" onClick={() => setCurrentView('default')}>Voltar ao início</button></div></section>;
     const records: Record<string, { title: string; kind: 'modules' | 'exams' | 'alerts' | 'live' | 'empty' }> = {
@@ -71,7 +75,6 @@ export const AppContent: React.FC = () => {
       'co-alertas': { title: 'Alertas', kind: 'alerts' },
       'co-live': { title: 'Alunos online', kind: 'live' },
       'co-provas': { title: 'Provas e simulados', kind: 'exams' },
-      'co-ucs': { title: 'Períodos e matérias', kind: 'modules' },
       'co-conteudo': { title: 'Conteúdo', kind: 'modules' },
       'co-relatorio': { title: 'Relatórios', kind: 'empty' },
       'al-inicio': { title: 'Meu curso', kind: 'modules' },
@@ -101,7 +104,7 @@ export const AppContent: React.FC = () => {
       case 'co-alertas': return <CoordAlerts />;
       case 'co-live': return <CoordLive />;
       case 'co-provas': return <CoordExams />;
-      case 'co-ucs': return <CoordUCs />;
+      case 'co-ucs': return <ContentManager />;
       case 'co-conteudo': return <CoordContent />;
       case 'co-gestao': return <ContentManager />;
       case 'co-setup': return <CoordUnitSetup />;

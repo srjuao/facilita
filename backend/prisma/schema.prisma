@@ -55,6 +55,11 @@ model Tenant {
   primaryColor String @default("#2f7dd1")
   courses   Course[]
   users     User[]
+  departments Department[]
+  academicPeriods AcademicPeriod[]
+  announcements Announcement[]
+  classGroups ClassGroup[]
+  conversations Conversation[]
   planId    String?
   plan      Plan? @relation(fields: [planId], references: [id], onDelete: Restrict)
 }
@@ -114,6 +119,8 @@ model Course {
   students  Student[]
   exams     Exam[]
   users     User[]
+  classGroups ClassGroup[]
+  academicPeriods AcademicPeriod[]
 }
 
 model User {
@@ -130,6 +137,79 @@ model User {
   course    Course?  @relation(fields: [courseId], references: [id])
   studentId Int?     @unique
   student   Student? @relation(fields: [studentId], references: [id])
+  permissions String[] @default([])
+  departmentId String?
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  announcements Announcement[]
+  conversations Conversation[]
+  conversationMessages ConversationMessage[]
+}
+
+model Department {
+  id String @id @default(cuid())
+  tenantId String
+  nome String
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users User[]
+  @@unique([tenantId, nome])
+}
+
+model AcademicPeriod {
+  id String @id @default(cuid())
+  tenantId String
+  courseId String
+  nome String
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  modules Module[]
+  @@index([tenantId, courseId])
+}
+
+model Announcement {
+  id String @id @default(cuid())
+  tenantId String
+  title String
+  body String
+  createdBy String
+  createdAt DateTime @default(now())
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  @@index([tenantId, createdAt])
+}
+
+model ClassGroup {
+  id String @id @default(cuid())
+  tenantId String
+  courseId String
+  nome String
+  memberIds String[] @default([])
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  @@index([tenantId, courseId])
+}
+
+model Conversation {
+  id String @id @default(cuid())
+  tenantId String
+  nome String
+  memberIds String[] @default([])
+  createdBy String
+  createdAt DateTime @default(now())
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  messages ConversationMessage[]
+  @@index([tenantId, createdAt])
+}
+
+model ConversationMessage {
+  id String @id @default(cuid())
+  conversationId String
+  senderId String
+  body String
+  createdAt DateTime @default(now())
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender User @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  @@index([conversationId, createdAt])
 }
 
 model Student {
@@ -167,6 +247,8 @@ model Module {
   courseId String
   course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons  Lesson[]
+  periodId String?
+  period AcademicPeriod? @relation(fields: [periodId], references: [id], onDelete: SetNull)
 }
 
 model Lesson {

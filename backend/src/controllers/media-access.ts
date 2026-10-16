@@ -35,7 +35,7 @@ export async function streamLessonMedia(req: Request, res: Response) {
       prisma.lesson.findUnique({ where: { id: req.params.id }, include: { module: { include: { course: true } } } })
     ]);
     if (!account || !lesson) return res.status(404).json({ error: 'Vídeo não encontrado.' });
-    if (account.role !== 'superadmin' && (!account.tenant?.ativo || account.courseId !== lesson.module.courseId || account.tenantId !== lesson.module.course.tenantId || account.tenant.plan && !account.tenant.plan.videoAulas)) return res.status(403).json({ error: 'Seu acesso a este vídeo não está mais disponível.' });
+    if (account.role !== 'superadmin' && (!account.tenant?.ativo || (account.role !== 'coord' && account.courseId !== lesson.module.courseId) || account.tenantId !== lesson.module.course.tenantId || account.tenant.plan && !account.tenant.plan.videoAulas)) return res.status(403).json({ error: 'Seu acesso a este vídeo não está mais disponível.' });
     const filename = localVideoFilename(lesson.videoUrl);
     if (!filename) return res.status(404).json({ error: 'Vídeo local não encontrado.' });
     // sendFile supports HTTP Range requests for native HTML video seeking.
