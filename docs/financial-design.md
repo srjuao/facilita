@@ -6,6 +6,10 @@ Decisão atual do produto: implementar contratos e faturas internas no superadmi
 
 Cada instituição pode ter um contrato financeiro com mínimo de alunos, preço por aluno em centavos, dia de vencimento (1 a 28), dados do contratante e do emitente e instruções de pagamento em texto. O contrato financeiro não altera automaticamente os recursos ou limites de acesso do plano vinculado.
 
+O vínculo de um plano por aluno ou por faixas no superadmin solicita essas condições de cobrança e salva plano e contrato juntos. A data pedida ao operador é o **dia de vencimento mensal**; a data completa da fatura será gerada na competência escolhida. Planos `FIXO` não podem ser vinculados por este fluxo enquanto a fatura da plataforma cobrar por aluno, para evitar usar um preço fixo como preço unitário. Contratos antigos que foram vinculados somente ao plano aparecem como pendentes de configuração no Financeiro; não há preenchimento inventado de CNPJ, endereço ou vencimento.
+
+Desvincular um plano preserva o histórico das faturas e o cadastro do contrato, mas impede novas emissões até que um plano válido esteja novamente vinculado. A estimativa exibida para um contrato já configurado usa o mínimo e preço negociados nele; a estimativa do catálogo não substitui o valor contratual.
+
 A quantidade faturável é `max(mínimo contratado, contas de alunos ativas na emissão)`. Contam somente contas com perfil `aluno`, vinculadas à instituição e não desativadas; professores, coordenação, funcionários e registros acadêmicos legados sem conta não entram na apuração. A apuração é uma fotografia no momento da emissão, não o maior uso do mês nem uma média diária.
 
 Exemplo de contrato definido pelo operador: mínimo de 1.000 alunos a R$ 4,30 por aluno. Com 800 ou 1.000 contas ativas, a cobrança é R$ 4.300,00; com 1.100, R$ 4.730,00. Esses valores não são criados automaticamente como contratos ou cobranças de clientes.

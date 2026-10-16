@@ -26,16 +26,21 @@ let tenant = { id: 'tenant', nome: 'Escola', ativo: true, planId: null, plan: nu
 let plan = { id: 'plan', ...valid, ativo: true };
 let academic = 2, unassigned = 1, events = [], saves = 0;
 let account = { id: 'user', email: 'u@example.test', role: 'aluno', tenantId: 'tenant', courseId: 'new-course', studentId: 4, tenant };
+let adminAccount = { id: 'admin', role: 'superadmin', disabledAt: null };
+let billingContract = null;
+const terms = { minimumStudents: 10, unitCents: 430, dueDay: 10, billingName: 'Escola', billingDocument: '123', billingAddress: 'Rua Teste', billingEmail: 'finance@example.test', issuerName: 'Facilita', issuerDocument: '456', issuerAddress: 'Rua Emitente', paymentInstructions: '' };
+const assignment = (planId = 'plan', expectedPlanId = null) => ({ planId, expectedPlanId, billingContract: terms, expectedContractVersion: billingContract?.version ?? null });
 const db = {
-  $queryRaw: async (sql, id) => { events.push(sql[0].includes('Tenant') ? 'lock-tenant' : 'lock-plan'); return id === 'missing' ? [] : [{ id }]; },
+  $queryRaw: async (sql, id) => { events.push(sql[0].includes('Tenant') ? 'lock-tenant' : sql[0].includes('User') ? 'lock-user' : 'lock-plan'); return id === 'missing' ? [] : [{ id }]; },
   tenant: {
     findUniqueOrThrow: async () => ({ ...tenant, plan: tenant.planId ? plan : null }),
-    update: async ({ data }) => { saves++; tenant = { ...tenant, planId: data.planId, plan: data.planId ? plan : null }; return { ...tenant, courses: [{ _count: { students: academic } }], _count: { users: unassigned } }; },
-    findMany: async () => [{ ...tenant, plan: tenant.planId ? plan : null, courses: [{ _count: { students: academic } }], _count: { users: unassigned } }]
+    update: async ({ data }) => { saves++; tenant = { ...tenant, planId: data.planId, plan: data.planId ? plan : null }; return { ...tenant, billingContract, courses: [{ _count: { students: academic } }], _count: { users: unassigned } }; },
+    findMany: async () => [{ ...tenant, billingContract, plan: tenant.planId ? plan : null, courses: [{ _count: { students: academic } }], _count: { users: unassigned } }]
   },
   plan: { findUniqueOrThrow: async () => plan, create: async ({ data }) => { saves++; return { id: 'created', ...data }; } },
   student: { count: async () => { events.push('count-students'); return academic; } },
-  user: { count: async args => { assert.equal(args.where.studentId, null); assert.equal(args.where.role, 'aluno'); return unassigned; }, findUnique: async () => account },
+  user: { count: async args => { assert.equal(args.where.role, 'aluno'); return args.where.disabledAt === null ? 2 : unassigned; }, groupBy: async () => [{ tenantId: 'tenant', _count: { id: 2 } }], findUnique: async ({ where }) => where.id === 'admin' ? adminAccount : account },
+  platformContract: { findUnique: async () => billingContract, create: async ({ data }) => { saves++; billingContract = { ...data, version: 0 }; return billingContract; }, update: async ({ data }) => { saves++; billingContract = { ...billingContract, ...data, version: billingContract.version + 1 }; return billingContract; } },
   $transaction: async fn => fn(db)
 };
 const originalLoad = Module._load;
@@ -54,16 +59,49 @@ test('plan controllers deny tenant users before touching writes', async () => {
 });
 test('assignment locks tenant before count, counts unassigned accounts, and estimates from actual records', async () => {
   events = []; const r = response();
-  await controllers.assignPlan(req({ planId: 'plan', expectedPlanId: null }), r);
+  await controllers.assignPlan(req(assignment()), r);
   assert.equal(r.code, 200); assert.equal(r.body.studentCount, 3); assert.equal(r.body.estimatedCents, 1290);
-  assert.equal(events[0], 'lock-tenant'); assert.ok(events.indexOf('lock-plan') < events.indexOf('count-students'));
+  assert.equal(r.body.billingContract.dueDay, 10); assert.equal(r.body.contractEstimatedCents, 4300); assert.equal(r.body.activeStudentAccounts, 2);
+  assert.equal(events[0], 'lock-user'); assert.ok(events.indexOf('lock-plan') < events.indexOf('count-students'));
 });
 test('assignment rejects stale expected plan, inactive new plan, invalid body and insufficient limit', async () => {
   tenant.planId = null; plan.ativo = false;
-  for (const [body, status] of [[{ planId: 'plan', expectedPlanId: 'old' }, 409], [{ planId: 'plan', expectedPlanId: null }, 409], [{ planId: 'plan' }, 400], [{ planId: 'missing', expectedPlanId: null }, 404]]) { const r = response(); await controllers.assignPlan(req(body), r); assert.equal(r.code, status); }
+  for (const [body, status] of [[assignment('plan', 'old'), 409], [assignment(), 409], [{ planId: 'plan' }, 400], [assignment('missing'), 404]]) { const r = response(); await controllers.assignPlan(req(body), r); assert.equal(r.code, status); }
   plan.ativo = true; plan.studentLimit = 2;
-  const r = response(); await controllers.assignPlan(req({ planId: 'plan', expectedPlanId: null }), r); assert.equal(r.code, 409);
+  const r = response(); await controllers.assignPlan(req({ ...assignment(), billingContract: { ...terms, minimumStudents: 1 } }), r); assert.equal(r.code, 409);
+  plan.studentLimit = 5;
+  const minimumTooLarge = response(); await controllers.assignPlan(req(assignment()), minimumTooLarge); assert.equal(minimumTooLarge.code, 400);
   plan.studentLimit = 20;
+});
+test('plan assignment requires complete payment terms and a live superadmin; rejects stale contract updates', async () => {
+  tenant.planId = null; plan.ativo = true;
+  const before = saves;
+  for (const body of [
+    { planId: 'plan', expectedPlanId: null },
+    { ...assignment(), billingContract: { ...terms, dueDay: 31 } },
+    { ...assignment(), expectedContractVersion: null },
+  ]) {
+    const r = response(); await controllers.assignPlan(req(body), r);
+    assert.equal(r.code, body.billingContract?.dueDay === 31 || !body.billingContract ? 400 : 409);
+  }
+  adminAccount.disabledAt = new Date();
+  const forbidden = response(); await controllers.assignPlan(req(assignment()), forbidden);
+  assert.equal(forbidden.code, 403);
+  adminAccount.disabledAt = null;
+  assert.equal(saves, before);
+});
+test('contract estimate counts active student accounts while plan capacity includes academic records', async () => {
+  tenant.planId = 'plan';
+  const r = response(); await controllers.getSubscriptions(req({}), r);
+  assert.equal(r.code, 200);
+  assert.equal(r.body[0].studentCount, 3);
+  assert.equal(r.body[0].activeStudentAccounts, 2);
+  assert.equal(r.body[0].contractEstimatedCents, billingContract ? Math.max(billingContract.minimumStudents, 2) * billingContract.unitCents : null);
+  const saved = billingContract;
+  billingContract = { ...saved, unitCents: 300000000 };
+  const overflow = response(); await controllers.getSubscriptions(req({}), overflow);
+  assert.equal(overflow.code, 200); assert.equal(overflow.body[0].contractEstimatedCents, null);
+  billingContract = saved;
 });
 test('removing plan restores unconfigured/null billing, not a zero-value invoice', async () => {
   tenant.planId = 'plan'; const r = response(); await controllers.assignPlan(req({ planId: null, expectedPlanId: 'plan' }), r);

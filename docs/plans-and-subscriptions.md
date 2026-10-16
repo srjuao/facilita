@@ -28,9 +28,9 @@
 
 ## Base financeira atual
 
-A tela **Financeiro por instituição** lista planos e quantidades, mostra a estimativa mensal por unidade e agrega a base estimada apenas das instituições ativas com plano. Também mostra instituições ativas aguardando vínculo. Unidades inativas permanecem na listagem, identificadas fora da previsão ativa.
+A tela **Financeiro** lista os contratos e as faturas da plataforma. Vincular um plano por aluno ou por faixas agora também solicita dia de vencimento, mínimo contratado, preço unitário e dados de cobrança; o vínculo e o contrato são salvos juntos. Planos fixos aguardam um modelo de fatura próprio. Instituições vinculadas antes desta mudança, ainda sem contrato, aparecem como pendentes para completar os dados. Ao editar um contrato, os documentos já emitidos mantêm seus valores e dados.
 
-Esta tela não cria faturas, boletos, cobranças nem confirma pagamentos. Ainda não há provedor de pagamentos, envio financeiro, vencimentos ou cadastro fiscal implementados. A base estimada não deve ser interpretada como receita recebida.
+Faturas são emitidas manualmente por competência, podem ser impressas e aceitam baixa/cancelamento manual com histórico. Não há boleto bancário pagável, provedor de pagamentos, envio financeiro ou confirmação automática. A previsão mensal não é receita recebida. Regras completas: `financial-design.md`.
 
 ## Dados e migração
 

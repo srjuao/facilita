@@ -4,7 +4,7 @@ const { billingAmount, dueDate } = require('../dist/platform-finance/policy');
 const { financeDb: db, platformFinanceRouter: router } = require('../dist/platform-finance/router');
 let account = { id: 'admin', nome: 'Admin', role: 'superadmin', disabledAt: null, tenantId: null };
 const contract = { tenantId: 'tenant-a', minimumStudents: 1000, unitCents: 430, dueDay: 10, billingName: 'Institution', billingDocument: 'Document', billingAddress: 'Address', billingEmail: 'finance@example.invalid', issuerName: 'Facilita', issuerDocument: 'Issuer document', issuerAddress: 'Issuer address', paymentInstructions: '', version: 0, updatedBy: 'admin', createdAt: new Date(), updatedAt: new Date() };
-const tx = { $queryRaw: async () => [], user: { findUnique: async () => account, count: async ({ where }) => { assert.deepEqual(where, { tenantId: 'tenant-a', role: 'aluno', disabledAt: null }); return 1100; } }, tenant: { findUnique: async () => ({ id: 'tenant-a', ativo: true }) }, platformContract: { findUnique: async () => contract }, platformInvoice: { findUnique: async () => null, create: async ({ data }) => ({ id: 'invoice', ...data }) } };
+const tx = { $queryRaw: async () => [], user: { findUnique: async () => account, count: async ({ where }) => { assert.deepEqual(where, { tenantId: 'tenant-a', role: 'aluno', disabledAt: null }); return 1100; } }, tenant: { findUnique: async () => ({ id: 'tenant-a', ativo: true, planId: 'plan' }) }, platformContract: { findUnique: async () => contract }, platformInvoice: { findUnique: async () => null, create: async ({ data }) => ({ id: 'invoice', ...data }) } };
 db.user.findUnique = async () => account;
 db.$transaction = async callback => callback(tx);
 function request(path, method, body = {}) {
@@ -87,5 +87,7 @@ test('mutation rechecks actor inside locked transaction and inactive tenant deni
   assert.equal((await request('/invoices', 'POST', { tenantId: 'tenant-a', competence: '2026-10', expectedContractVersion: 0 })).code, 403);
   tx.user.findUnique = async () => account;
   tx.tenant.findUnique = async () => ({ id: 'tenant-a', ativo: false });
+  assert.equal((await request('/invoices', 'POST', { tenantId: 'tenant-a', competence: '2026-10', expectedContractVersion: 0 })).code, 409);
+  tx.tenant.findUnique = async () => ({ id: 'tenant-a', ativo: true, planId: null });
   assert.equal((await request('/invoices', 'POST', { tenantId: 'tenant-a', competence: '2026-10', expectedContractVersion: 0 })).code, 409);
 });

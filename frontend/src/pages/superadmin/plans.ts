@@ -20,7 +20,23 @@ export interface Subscription {
   ativo: boolean;
   plan: Plan | null;
   studentCount: number;
+  activeStudentAccounts?: number;
   estimatedCents: number | null;
+  contractEstimatedCents?: number | null;
+  billingContract?: (BillingTerms & { version: number }) | null;
+}
+export interface BillingTerms {
+  minimumStudents: number;
+  unitCents: number;
+  dueDay: number;
+  billingName: string;
+  billingDocument: string;
+  billingAddress: string;
+  billingEmail: string;
+  issuerName: string;
+  issuerDocument: string;
+  issuerAddress: string;
+  paymentInstructions: string;
 }
 export const money = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 export const priceLabel = (plan: Plan) => plan.billingMode === 'FAIXAS' ? 'Por aluno · faixas progressivas' : `${money(plan.priceCents)} / ${plan.billingMode === 'FIXO' ? 'mês' : 'aluno/mês'}`;

@@ -24,9 +24,10 @@ async function actor(db: Prisma.TransactionClient, req: AuthRequest, lock = fals
 }
 async function tenant(tx: Prisma.TransactionClient, id: string) {
   await tx.$queryRaw`SELECT "id" FROM "Tenant" WHERE "id" = ${id} FOR UPDATE`;
-  const value = await tx.tenant.findUnique({ where: { id }, select: { id: true, ativo: true } });
+  const value = await tx.tenant.findUnique({ where: { id }, select: { id: true, ativo: true, planId: true } });
   if (!value) throw new PlanError(404, 'Instituição não encontrada.');
   if (!value.ativo) throw new PlanError(409, 'Reative a instituição antes de alterar o contrato ou gerar uma cobrança.');
+  return value;
 }
 const events = { orderBy: { createdAt: 'asc' as const } };
 platformFinanceRouter.get('/', wrap(async (req, res) => {
@@ -59,7 +60,8 @@ platformFinanceRouter.post('/invoices', wrap(async (req, res) => {
   if (typeof tenantId !== 'string' || !tenantId || tenantId.length > 160) throw new PlanError(400, 'Instituição inválida.');
   integer(expectedContractVersion, 'Versão do contrato'); dueDate(competence, 1);
   const invoice = await financeDb.$transaction(async tx => {
-    const currentActor = await actor(tx, req, true); await tenant(tx, tenantId);
+    const currentActor = await actor(tx, req, true); const currentTenant = await tenant(tx, tenantId);
+    if (!currentTenant.planId) throw new PlanError(409, 'Vincule um plano e confirme o contrato antes de emitir a cobrança.');
     const contract = await tx.platformContract.findUnique({ where: { tenantId } });
     if (!contract) throw new PlanError(409, 'Cadastre o contrato antes de emitir uma cobrança.');
     if (contract.version !== expectedContractVersion) throw new PlanError(409, 'O contrato mudou. Atualize e revise os valores antes de emitir.');

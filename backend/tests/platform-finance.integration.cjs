@@ -8,8 +8,10 @@ test('PostgreSQL: contracts, invoice snapshots, concurrent issuance and manual s
   assert.equal(url.pathname, '/facilita_finance_validation');
   process.env.DATABASE_URL = url.href;
   const { financeDb: db, platformFinanceRouter: router } = require('../dist/platform-finance/router');
+  const { assignPlan } = require('../dist/controllers/plan.controller');
   const suffix = require('node:crypto').randomUUID();
   const tenantId = `finance-test-${suffix}`;
+  const planId = `finance-plan-${suffix}`;
   let admin;
   function request(path, method, body = {}) {
     return new Promise((resolve, reject) => {
@@ -21,16 +23,26 @@ test('PostgreSQL: contracts, invoice snapshots, concurrent issuance and manual s
     });
   }
   try {
+    await db.plan.create({ data: { id: planId, nome: 'Local per-student validation', billingMode: 'POR_ALUNO', priceCents: 430, videoAulas: true, provas: true, ia: false } });
     await db.tenant.create({ data: { id: tenantId, nome: 'Local validation', full: '', cidade: '', color: '', cover: '', dominio: `${suffix}.invalid`, admin: '', since: '' } });
     admin = await db.user.create({ data: { nome: 'Local operator', email: `${suffix}@operator.invalid`, password: 'not-a-login-hash', papel: 'Superadmin', role: 'superadmin' } });
     await db.user.createMany({ data: Array.from({ length: 803 }, (_, i) => ({ nome: 'Local test', email: `${suffix}-${i}@test.invalid`, password: 'not-a-login-hash', papel: '', tenantId, role: i < 802 ? 'aluno' : 'professor', disabledAt: i >= 800 && i < 802 ? new Date() : null })) });
-    const terms = { minimumStudents: 1000, unitCents: 430, dueDay: 10, billingName: 'Local institution', billingDocument: 'TEST ONLY', billingAddress: 'Local validation', billingEmail: 'finance@test.invalid', issuerName: 'Local issuer', issuerDocument: 'TEST ONLY', issuerAddress: 'Local validation', paymentInstructions: 'Not payable — automated test', expectedVersion: null };
-    const saved = await request(`/contracts/${tenantId}`, 'PUT', terms);
-    assert.equal(saved.code, 200, JSON.stringify(saved.body));
+    const terms = { minimumStudents: 1000, unitCents: 430, dueDay: 10, billingName: 'Local institution', billingDocument: 'TEST ONLY', billingAddress: 'Local validation', billingEmail: 'finance@test.invalid', issuerName: 'Local issuer', issuerDocument: 'TEST ONLY', issuerAddress: 'Local validation', paymentInstructions: 'Not payable — automated test' };
+    const linked = await new Promise((resolve, reject) => {
+      const req = { user: { id: admin.id, role: 'superadmin' }, params: { id: tenantId }, body: { planId, expectedPlanId: null, billingContract: terms, expectedContractVersion: null } };
+      const res = { code: 200, status(code) { this.code = code; return this; }, json(body) { resolve({ code: this.code, body }); } };
+      Promise.resolve(assignPlan(req, res)).catch(reject);
+    });
+    assert.equal(linked.code, 200, JSON.stringify(linked.body));
+    assert.equal(linked.body.billingContract.dueDay, 10);
+    const listed = await request('/', 'GET');
+    assert.equal(listed.code, 200, JSON.stringify(listed.body));
+    assert.equal(listed.body.contracts.find(c => c.tenantId === tenantId).dueDay, 10);
     const emit = () => request('/invoices', 'POST', { tenantId, competence: '2026-10', expectedContractVersion: 0 });
     const concurrent = await Promise.all([emit(), emit()]);
     assert.deepEqual(concurrent.map(r => r.code).sort(), [201, 409]);
     const invoice = concurrent.find(r => r.code === 201).body.invoice;
+    assert.equal(new Date(invoice.dueDate).toISOString().slice(0, 10), '2026-10-10');
     assert.equal(invoice.totalCents, 430000);
     assert.equal(invoice.activeStudents, 800);
     assert.equal(invoice.billableStudents, 1000);
