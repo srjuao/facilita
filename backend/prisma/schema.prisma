@@ -64,6 +64,81 @@ model Tenant {
   plan      Plan? @relation(fields: [planId], references: [id], onDelete: Restrict)
   billingContract PlatformContract?
   platformInvoices PlatformInvoice[]
+  tuitionSettings TuitionSettings?
+  tuitionAdjustments TuitionAdjustment[]
+  tuitionInvoices TuitionInvoice[]
+}
+
+model TuitionSettings {
+  tenantId String @id
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  mode String
+  schoolCents Int
+  dueDay Int
+  startMonth String
+  issuerName String
+  issuerDocument String
+  issuerAddress String
+  paymentInstructions String
+  coursePrices Json
+  version Int @default(0)
+  updatedBy String
+  updatedAt DateTime @updatedAt
+}
+
+model TuitionAdjustment {
+  id String @id @default(cuid())
+  tenantId String
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  studentId String
+  discountCents Int @default(0)
+  scholarship Boolean @default(false)
+  startMonth String
+  updatedBy String
+  updatedAt DateTime @updatedAt
+  @@unique([tenantId, studentId])
+}
+
+model TuitionInvoice {
+  id String @id @default(cuid())
+  number String @unique
+  tenantId String
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  studentId String
+  studentName String
+  studentEmail String
+  courseId String?
+  courseName String?
+  mode String
+  competence String
+  dueDate DateTime
+  grossCents Int
+  discountCents Int
+  totalCents Int
+  status String @default("OPEN")
+  issuerName String
+  issuerDocument String
+  issuerAddress String
+  paymentInstructions String
+  settingsVersion Int
+  version Int @default(0)
+  paidAt DateTime?
+  createdAt DateTime @default(now())
+  events TuitionInvoiceEvent[]
+  @@unique([tenantId, studentId, competence])
+  @@index([tenantId, id])
+  @@index([tenantId, studentId, id])
+}
+
+model TuitionInvoiceEvent {
+  id String @id @default(cuid())
+  invoiceId String
+  invoice TuitionInvoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  action String
+  note String
+  actorId String
+  actorName String
+  createdAt DateTime @default(now())
 }
 
 model PlatformContract {

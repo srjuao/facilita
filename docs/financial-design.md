@@ -33,7 +33,7 @@ O preço por aluno do plano Facilita nunca deve ser usado automaticamente como m
 ## Telas e próximas etapas
 
 - Financeiro do Facilita: contratos de instituições, competências, faturas, situação, impressão e histórico de baixas/cancelamentos manuais.
-- Financeiro da instituição: valores de mensalidade por aluno/curso, vencimentos, parcelas, descontos e cancelamentos autorizados, além das vendas de conteúdo.
+- Financeiro da instituição: mensalidade padrão da escola ou por curso, descontos individuais, vencimentos, faturas e baixas manuais. Regras em `institution-finance.md`. Parcelamento e integração bancária ficam para outra etapa; cursos pagos continuam em seu módulo próprio.
 - Portal do aluno: apenas suas mensalidades e solicitações de cursos, sem acesso a dados de colegas.
 - Departamentos e acessos: permissões futuras de consulta e gestão financeira, separadas de administração acadêmica e sem privilégios automáticos pelo nome do departamento.
 
@@ -43,4 +43,4 @@ Dados de contratantes, devedores, carteiras e títulos sempre terão proprietár
 
 Integração futura exigirá provedor escolhido pelo cliente, conta recebedora de cada carteira, idempotência, validação de notificações, conciliação e regras de cancelamento/reembolso. A confirmação do provedor deverá ser distinguida das baixas manuais existentes; retorno do navegador ou mera solicitação de acesso nunca confirmam pagamento.
 
-Não há receita simulada, envio de boleto, comprovante bancário gerado nem gateway configurado. Financeiro acadêmico da instituição e portal de mensalidades dos alunos continuam planejados, separados destas faturas da plataforma.
+Não há receita simulada, envio de boleto, comprovante bancário gerado nem gateway configurado. Financeiro acadêmico da instituição e portal de mensalidades dos alunos permanecem separados destas faturas da plataforma.

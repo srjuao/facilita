@@ -31,6 +31,7 @@ import { CoordUnitSetup } from './pages/coord/CoordUnitSetup';
 import { InstitutionWorkspace } from './pages/institution/InstitutionWorkspace';
 import { PaidCourses } from './pages/institution/PaidCourses';
 import { StaffAccounts } from './pages/institution/StaffAccounts';
+import { InstitutionFinancial } from './pages/institution/InstitutionFinancial';
 import { Assessments } from './pages/institution/Assessments';
 
 // SuperAdmin Pages
@@ -72,6 +73,7 @@ export const AppContent: React.FC = () => {
 
   const renderView = () => {
     if (activeView === 'co-staff') return <StaffAccounts />;
+    if (activeView === 'co-finance' || activeView === 'al-finance') return <InstitutionFinancial />;
     if (activeView === 'co-sales' || activeView === 'al-store') return <PaidCourses onOpenCourse={courseId => { setSelectedPaidCourseId(courseId); setCurrentView('al-paid-course'); }} />;
     if (activeView === 'al-paid-course') return <CourseRecords title="Conteúdo do curso" kind="modules" courseId={selectedPaidCourseId} onOpenLesson={handleOpenLesson} onShowCatalog={() => setCurrentView('al-store')} onOpenExams={user.tenant?.plan?.provas === false ? undefined : () => setCurrentView('al-course-exams')} />;
     if (activeView === 'al-course-exams') return <Assessments courseId={selectedPaidCourseId} />;

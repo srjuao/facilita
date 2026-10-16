@@ -21,7 +21,9 @@ db.$transaction = async callback => callback(transaction);
 transaction.user.findFirst = async ({ where }) => where.role === 'coord' ? actor : { id: where.id, nome: 'Staff', email: 'staff@example.invalid', permissions: [], departmentId: null, disabledAt: null };
 transaction.department.findFirst = async ({ where }) => where.tenantId === 'tenant-a' && where.id === 'department-a' ? { id: 'department-a' } : null;
 test('staff permissions do not acquire coordinator or teacher privileges', () => {
-  assert.deepEqual(effectivePermissions('staff', ['students.manage', 'content.manage', 'exams.manage', 'chat.create', 'finance.manage']), ['students.manage', 'chat.create']);
+  assert.deepEqual(effectivePermissions('staff', ['students.manage', 'content.manage', 'exams.manage', 'chat.create', 'finance.manage']), ['students.manage', 'chat.create', 'finance.manage']);
+  assert.deepEqual(effectivePermissions('professor', ['finance.manage']), []);
+  assert.deepEqual(effectivePermissions('aluno', ['finance.manage']), []);
 });
 test('staff management follows current account role and denies disabled accounts', async () => {
   actor = { ...actor, role: 'staff', permissions: ['students.manage'] };

@@ -92,6 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
       { id: 'co-team', label: 'Departamentos e acessos', icon: <Users size={18} /> },
       { id: 'co-sales', label: 'Cursos pagos e liberações', icon: <ShoppingBag size={18} /> },
       { id: 'co-staff', label: 'Funcionários', icon: <Users size={18} /> },
+      { id: 'co-finance', label: 'Financeiro', icon: <DollarSign size={18} /> },
     ],
     professor: [
       { sec: 'Meu curso' },
@@ -105,6 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     ],
     staff: [
       { sec: 'Equipe da instituição' },
+      ...(user.permissions?.includes('finance.manage') ? [{ id: 'co-finance', label: 'Financeiro', icon: <DollarSign size={18} /> }] : []),
       { id: 'co-notices', label: 'Avisos', icon: <FileText size={18} /> },
       { id: 'co-chat', label: 'Chat interno', icon: <MessageSquare size={18} /> },
       { id: 'co-alunos', label: 'Alunos', icon: <Users size={18} /> },
@@ -122,6 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
       { id: 'al-classes', label: 'Minha turma', icon: <Users size={18} /> },
       { id: 'al-chat', label: 'Chat interno', icon: <MessageSquare size={18} /> },
       { id: 'al-store', label: 'Cursos da instituição', icon: <ShoppingBag size={18} /> },
+      { id: 'al-finance', label: 'Minhas mensalidades', icon: <DollarSign size={18} /> },
     ]
   };
 
