@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../api/client';
-import { Plan, Subscription, money, priceLabel } from './plans';
+import { Plan, Subscription, money, priceLabel, estimatePlan } from './plans';
 import './SuperAdminPlans.css';
 
 export const PlanAssignments: React.FC<{ tenantId?: string }> = ({ tenantId }) => {
@@ -43,7 +43,7 @@ export const PlanAssignments: React.FC<{ tenantId?: string }> = ({ tenantId }) =
       const selectedId = choices[row.tenantId] ?? row.plan?.id ?? '';
       const selection = plans.find(plan => plan.id === selectedId) || (row.plan?.id === selectedId ? row.plan : null);
       const changed = selectedId !== (row.plan?.id || '');
-      const preview = selection ? selection.priceCents * (selection.billingMode === 'FIXO' ? 1 : row.studentCount) : null;
+      const preview = selection ? estimatePlan(selection, row.studentCount) : null;
       return <article key={row.tenantId} className="plan-assignment">
         <div><h3>{row.nome} <span className={`pill ${row.ativo ? 'good' : 'warn'}`}>{row.ativo ? 'Ativa' : 'Desativada'}</span></h3><p>{row.studentCount.toLocaleString('pt-BR')} alunos/contas cadastrados</p><small>Atual: {row.plan ? row.plan.nome + ' · ' + priceLabel(row.plan) : 'Sem plano configurado'}</small></div>
         <div className="plan-assignment-control"><label>Plano contratado<select disabled={!!saving} value={selectedId} onChange={event => setChoices({ ...choices, [row.tenantId]: event.target.value })}><option value="">Sem plano (acesso legado)</option>{row.plan && !row.plan.ativo && <option value={row.plan.id}>{row.plan.nome} · atual, desativado no catálogo</option>}{plans.filter(plan => plan.ativo).map(plan => <option key={plan.id} value={plan.id}>{plan.nome} · {priceLabel(plan)}</option>)}</select></label><p className="plan-assignment-preview">{preview !== null ? `Base mensal estimada: ${money(preview)}` : 'Sem base de cobrança'}{!row.ativo && ' · unidade desativada, fora da previsão ativa'}</p>{selection && <p className="muted" style={{ fontSize: 12 }}>Recursos: videoaulas {selection.videoAulas ? 'incluídas' : 'não incluídas'} · provas {selection.provas ? 'incluídas' : 'não incluídas'} · IA {selection.ia ? 'liberada (integração pendente)' : 'não incluída'}</p>}{selection?.studentLimit != null && <small>Limite contratado: {selection.studentLimit.toLocaleString('pt-BR')} alunos.</small>}

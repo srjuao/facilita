@@ -90,3 +90,60 @@ test('AI send is explicitly unavailable without writing fabricated answers or su
   const r = response(); await sendMessage({ user: { studentId: 4 }, body: { content: '<script>test</script>' } }, r);
   assert.equal(r.code, 503); assert.match(r.body.error, /Nenhuma mensagem foi enviada/);
 });
+
+const pricePoints = [{ students: 20, unitCents: 5790 }, { students: 50, unitCents: 3490 }, { students: 100, unitCents: 2290 }, { students: 250, unitCents: 1290 }, { students: 500, unitCents: 790 }, { students: 1000, unitCents: 430 }];
+test('tiered plans validate all references and store nested price records, without trusting arbitrary fields', () => {
+  const input = { ...valid, billingMode: 'FAIXAS', priceCents: 0, studentLimit: null, pricePoints };
+  assert.deepEqual(validatePlan(input).pricePoints, { create: pricePoints });
+  for (const patch of [
+    { priceCents: 1 }, { studentLimit: 10 }, { pricePoints: undefined }, { pricePoints: [] }, { pricePoints: [pricePoints[0]] },
+    { pricePoints: [pricePoints[1], pricePoints[0]] }, { pricePoints: [pricePoints[0], pricePoints[0]] },
+    { pricePoints: [{ students: 20, unitCents: 100 }, { students: 30, unitCents: 101 }] },
+    { pricePoints: [{ students: 20, unitCents: 100 }, { students: 30, unitCents: 1 }] },
+    { pricePoints: [{ students: 1.5, unitCents: 100 }, pricePoints[1]] },
+    { pricePoints: [{ students: 1, unitCents: -1 }, pricePoints[1]] },
+    { pricePoints: Array(21).fill(pricePoints[0]) }
+  ]) assert.throws(() => validatePlan({ ...input, ...patch }));
+});
+test('tier estimates match anchors, interpolate totals gradually and never drop total for an extra student', () => {
+  const tier = { billingMode: 'FAIXAS', priceCents: 0, pricePoints };
+  assert.equal(estimatedCents(tier, 0), 0);
+  assert.equal(estimatedCents(tier, 1), 5790);
+  for (const point of pricePoints) assert.equal(estimatedCents(tier, point.students), point.students * point.unitCents);
+  assert.equal(estimatedCents(tier, 35), 145150);
+  assert.equal(estimatedCents(tier, 20000), 8600000);
+  for (let n = 1; n <= 100000; n++) assert.ok(estimatedCents(tier, n) >= estimatedCents(tier, n - 1));
+  assert.equal(estimatedCents({ billingMode: 'FAIXAS', priceCents: 0 }, 30), null);
+  assert.equal(estimatedCents({ ...tier, pricePoints: [{ students: 10, unitCents: 1000 }, { students: 20, unitCents: 800 }] }, 15), 13000);
+  assert.equal(estimatedCents({ ...tier, pricePoints: [{ students: 41, unitCents: 50685 }, { students: 697, unitCents: 30966 }] }, 497), 15636590);
+});
+let publicSetting = { id: 1, planId: 'plan' };
+db.publicPricingSetting = {
+  findUnique: async () => ({ ...publicSetting, plan }),
+  findFirst: async ({ where }) => publicSetting.planId === where.planId ? publicSetting : null,
+  update: async ({ data }) => { publicSetting = { ...publicSetting, ...data }; return publicSetting; }
+};
+db.plan.findUnique = async ({ where }) => where.id === plan.id ? plan : null;
+db.plan.update = async ({ data }) => { plan = { ...plan, ...data }; return plan; };
+test('public pricing exposes only chosen active unlimited tiers and returns unavailable instead of hardcoded fallback', async () => {
+  plan = { id: 'plan', ...valid, ativo: true, billingMode: 'FAIXAS', priceCents: 0, studentLimit: null, pricePoints };
+  const r = response(); r.setHeader = () => {};
+  await controllers.getPublicPricing({}, r);
+  assert.equal(r.code, 200); assert.deepEqual(Object.keys(r.body), ['planId', 'nome', 'pricePoints', 'studentLimit']);
+  for (const patch of [{ ativo: false }, { studentLimit: 20 }, { billingMode: 'POR_ALUNO' }, { pricePoints: [] }]) {
+    const before = plan; plan = { ...plan, ...patch }; const r = response(); r.setHeader = () => {};
+    await controllers.getPublicPricing({}, r); assert.equal(r.code, 503); plan = before;
+  }
+});
+test('public pricing selection is superadmin-only, optimistic and rejects inactive or capped plans', async () => {
+  for (const handler of [controllers.getPricingSetting, controllers.updatePricingSetting]) {
+    const r = response(); await handler({ ...req({}), user: { role: 'coord' } }, r); assert.equal(r.code, 403);
+  }
+  const stale = response(); await controllers.updatePricingSetting(req({ planId: 'plan', expectedPlanId: null }), stale); assert.equal(stale.code, 409);
+  const bad = response(); await controllers.updatePricingSetting(req({ planId: 'plan' }), bad); assert.equal(bad.code, 400);
+  plan.studentLimit = 20;
+  const capped = response(); await controllers.updatePricingSetting(req({ planId: 'plan', expectedPlanId: 'plan' }), capped); assert.equal(capped.code, 400);
+  plan.studentLimit = null;
+  const ok = response(); await controllers.updatePricingSetting(req({ planId: 'plan', expectedPlanId: 'plan' }), ok); assert.equal(ok.code, 200);
+  const status = response(); await controllers.updatePlanStatus({ ...req({ ativo: false }), params: { id: 'plan' } }, status); assert.equal(status.code, 409); assert.equal(plan.ativo, true);
+});

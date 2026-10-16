@@ -62,6 +62,7 @@ model Tenant {
 enum BillingMode {
   FIXO
   POR_ALUNO
+  FAIXAS
 }
 
 model Plan {
@@ -77,6 +78,22 @@ model Plan {
   ativo        Boolean @default(true)
   createdAt    DateTime @default(now())
   tenants      Tenant[]
+  pricePoints  PlanPoint[]
+  publicPricing PublicPricingSetting[]
+}
+
+model PlanPoint {
+  planId String
+  students Int
+  unitCents Int
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  @@id([planId, students])
+}
+
+model PublicPricingSetting {
+  id Int @id @default(1)
+  planId String?
+  plan Plan? @relation(fields: [planId], references: [id], onDelete: Restrict)
 }
 
 model Course {

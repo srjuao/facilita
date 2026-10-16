@@ -10,14 +10,15 @@ const subscription = (tenant: any) => {
   const studentCount = tenant.courses.reduce((sum: number, course: any) => sum + course._count.students, 0) + tenant._count.users;
   return { tenantId: tenant.id, nome: tenant.nome, ativo: tenant.ativo, plan: tenant.plan, studentCount, estimatedCents: estimatedCents(tenant.plan, studentCount) };
 };
-const includeSubscription = { plan: true, courses: { select: { _count: { select: { students: true } } } }, _count: { select: { users: { where: { role: 'aluno', studentId: null } } } } } as const;
+const pointsInclude = { pricePoints: { orderBy: { students: 'asc' as const } } };
+const includeSubscription = { plan: { include: pointsInclude }, courses: { select: { _count: { select: { students: true } } } }, _count: { select: { users: { where: { role: 'aluno', studentId: null } } } } } as const;
 export async function getPlans(req: AuthRequest, res: Response) {
   if (!admin(req, res)) return;
-  try { return res.json(await prisma.plan.findMany({ include: { _count: { select: { tenants: true } } }, orderBy: { createdAt: 'desc' } })); } catch (error) { return fail(res, error); }
+  try { return res.json(await prisma.plan.findMany({ include: { ...pointsInclude, _count: { select: { tenants: true } } }, orderBy: { createdAt: 'desc' } })); } catch (error) { return fail(res, error); }
 }
 export async function createPlan(req: AuthRequest, res: Response) {
   if (!admin(req, res)) return;
-  try { return res.status(201).json(await prisma.plan.create({ data: validatePlan(req.body) })); } catch (error) { return fail(res, error); }
+  try { return res.status(201).json(await prisma.plan.create({ data: validatePlan(req.body), include: pointsInclude })); } catch (error) { return fail(res, error); }
 }
 export async function updatePlanStatus(req: AuthRequest, res: Response) {
   if (!admin(req, res)) return;
@@ -26,7 +27,8 @@ export async function updatePlanStatus(req: AuthRequest, res: Response) {
     const result = await prisma.$transaction(async tx => {
       const rows = await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "Plan" WHERE "id" = ${req.params.id} FOR UPDATE`;
       if (!rows.length) throw new PlanError(404, 'Plano não encontrado.');
-      return tx.plan.update({ where: { id: req.params.id }, data: { ativo: req.body.ativo } });
+      if (!req.body.ativo && await tx.publicPricingSetting.findFirst({ where: { planId: req.params.id } })) throw new PlanError(409, 'Selecione outro plano para a landing page antes de desativar este.');
+      return tx.plan.update({ where: { id: req.params.id }, data: { ativo: req.body.ativo }, include: pointsInclude });
     });
     return res.json(result);
   } catch (error) { return fail(res, error); }
@@ -53,5 +55,38 @@ export async function assignPlan(req: AuthRequest, res: Response) {
       return tx.tenant.update({ where: { id: tenant.id }, data: { planId }, include: includeSubscription });
     });
     return res.json(subscription(result));
+  } catch (error) { return fail(res, error); }
+}
+
+export async function getPublicPricing(_req: AuthRequest, res: Response) {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const setting = await prisma.publicPricingSetting.findUnique({ where: { id: 1 }, include: { plan: { include: pointsInclude } } });
+    const plan = setting?.plan;
+    if (!plan || !plan.ativo || plan.billingMode !== 'FAIXAS' || plan.studentLimit !== null || plan.pricePoints.length < 2) throw new PlanError(503, 'A simulação de preços está temporariamente indisponível. Entre em contato.');
+    return res.json({ planId: plan.id, nome: plan.nome, pricePoints: plan.pricePoints.map(({ students, unitCents }) => ({ students, unitCents })), studentLimit: plan.studentLimit });
+  } catch (error) { return fail(res, error); }
+}
+export async function getPricingSetting(req: AuthRequest, res: Response) {
+  if (!admin(req, res)) return;
+  try { return res.json({ planId: (await prisma.publicPricingSetting.findUnique({ where: { id: 1 } }))?.planId ?? null }); }
+  catch (error) { return fail(res, error); }
+}
+export async function updatePricingSetting(req: AuthRequest, res: Response) {
+  if (!admin(req, res)) return;
+  try {
+    const { planId, expectedPlanId } = req.body || {};
+    if (typeof planId !== 'string' || !planId || planId.length > 100 || (expectedPlanId !== null && (typeof expectedPlanId !== 'string' || !expectedPlanId || expectedPlanId.length > 100))) throw new PlanError(400, 'Informe o plano e a seleção atual da landing page.');
+    const setting = await prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT "id" FROM "PublicPricingSetting" WHERE "id" = 1 FOR UPDATE`;
+      const current = await tx.publicPricingSetting.findUnique({ where: { id: 1 } });
+      if (!current) throw new PlanError(503, 'A configuração pública de preços ainda não foi instalada.');
+      if (current.planId !== expectedPlanId) throw new PlanError(409, 'O plano público foi alterado por outra operação. Atualize a tela.');
+      await tx.$queryRaw`SELECT "id" FROM "Plan" WHERE "id" = ${planId} FOR UPDATE`;
+      const plan = await tx.plan.findUnique({ where: { id: planId }, include: pointsInclude });
+      if (!plan || !plan.ativo || plan.billingMode !== 'FAIXAS' || plan.studentLimit !== null || plan.pricePoints.length < 2) throw new PlanError(400, 'Selecione um plano ativo por faixas e sem limite de alunos para a landing page.');
+      return tx.publicPricingSetting.update({ where: { id: 1 }, data: { planId } });
+    });
+    return res.json({ planId: setting.planId });
   } catch (error) { return fail(res, error); }
 }
