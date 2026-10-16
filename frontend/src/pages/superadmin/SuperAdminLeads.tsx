@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Mail, Phone, RefreshCw, Search, X } from 'lucide-react';
+import { Mail, Phone, RefreshCw, Search } from 'lucide-react';
+import { AppDialog } from '../../components/AppDialog';
 import api from '../../api/client';
 import { TopBar } from '../../components/TopBar';
 import './SuperAdminLeads.css';
@@ -51,12 +52,12 @@ export const SuperAdminLeads: React.FC = () => {
   return <><TopBar currentPage="Leads e contatos" /><div className="sa-leads">
     <header className="leads-heading"><div><p className="eyebrow">RELACIONAMENTO COM INSTITUIÇÕES</p><h1>Da primeira conversa ao próximo passo.</h1><p className="muted">Contatos recebidos pelo site, organizados por etapa.</p></div><button className="ghost" disabled={loading || !!saving || !!selected} onClick={() => void load(search)}><RefreshCw size={16} /> {loading ? 'Carregando…' : 'Atualizar'}</button></header>
     {notice && <div className={notice.error ? 'inline-form-error' : 'leads-success'} role={notice.error ? 'alert' : 'status'}>{notice.text}</div>}
-    {selected && <form className="lead-details" onSubmit={event => { event.preventDefault(); void update(selected, draft); }}>
-      <div className="lead-details-title"><div><p className="eyebrow">GERENCIAR CONTATO</p><h2>{selected.instituicao}</h2><p>{selected.nome} · Recebido em {date(selected.createdAt)}</p></div><button type="button" className="ghost" disabled={!!saving} onClick={() => setSelected(null)} aria-label="Fechar detalhes e descartar alterações não salvas"><X size={20} /></button></div>
+    {selected && <AppDialog title={selected.instituicao} eyebrow="RELACIONAMENTO · CONTATO" description={`${selected.nome} · Recebido em ${date(selected.createdAt)}`} busy={!!saving} onClose={() => setSelected(null)}><form className="lead-details" onSubmit={event => { event.preventDefault(); void update(selected, draft); }}>
+      {notice?.error && <div className="inline-form-error" role="alert">{notice.text}</div>}
       <div className="lead-details-contact"><a href={`mailto:${selected.email}`}><Mail size={15} /> {selected.email}</a><a href={`tel:${selected.telefone.replace(/[^+0-9]/g, '')}`}><Phone size={15} /> {selected.telefone}</a><span>{selected.alunos ? selected.alunos.toLocaleString('pt-BR') + ' alunos informados' : 'Quantidade de alunos não informada'}</span></div>
       {selected.mensagem && <blockquote>{selected.mensagem}</blockquote>}
       <fieldset disabled={!!saving}><label>Etapa do contato<select value={draft.stage} onChange={e => setDraft({ ...draft, stage: e.target.value as Stage })}>{stages.map(stage => <option key={stage.id} value={stage.id}>{stage.label}</option>)}</select></label><label>Observações internas<textarea rows={4} maxLength={5000} value={draft.notas} placeholder="Registre o histórico da conversa e os próximos passos." onChange={e => setDraft({ ...draft, notas: e.target.value })} /><small>{draft.notas.length}/5.000 caracteres · visível somente ao superadmin</small></label><button className="primary">{saving ? 'Salvando…' : 'Salvar contato'}</button></fieldset>
-    </form>}
+    </form></AppDialog>}
     <div className="leads-toolbar"><span>{loaded ? `${total} contatos${search ? ' encontrados' : ' recebidos'} · ${filtered.length} exibidos` : 'Aguardando contatos…'}</span><label><Search size={17} /><input maxLength={200} disabled={!!selected} aria-label="Buscar leads" placeholder="Buscar instituição, pessoa ou contato" value={search} onChange={e => setSearch(e.target.value)} /></label></div>
     {nextCursor && <p className="muted">Há mais contatos nesta busca. Use “Carregar mais” abaixo do quadro.</p>}
     {loading && !loaded ? <p role="status">Carregando seu quadro de contatos…</p> : loaded && <><p className="leads-help">Arraste um card para mudar de etapa ou use o seletor no próprio card. Abra os detalhes para adicionar observações.</p><div className="leads-board">{stages.map(stage => {

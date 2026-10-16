@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../api/client';
+import { AppDialog } from '../../components/AppDialog';
 import { BillingTerms, Plan, Subscription, money, priceLabel, estimatePlan } from './plans';
 import './SuperAdminPlans.css';
 
@@ -12,6 +13,8 @@ export const PlanAssignments: React.FC<{ tenantId?: string }> = ({ tenantId }) =
   const [plans, setPlans] = useState<Plan[]>([]);
   const [choices, setChoices] = useState<Record<string, string>>({});
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [step, setStep] = useState(0);
+  const [unlinking, setUnlinking] = useState<Subscription | null>(null);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
@@ -31,6 +34,7 @@ export const PlanAssignments: React.FC<{ tenantId?: string }> = ({ tenantId }) =
     if (!planId) return;
     const contract = row.billingContract;
     setNotice(null);
+    setStep(0);
     setDraft({ tenantId: row.tenantId, planId, terms: contract ? { ...contract } : blankTerms(row.nome), unit: contract ? (contract.unitCents / 100).toFixed(2) : '' });
   };
   const save = async (row: Subscription, event: React.FormEvent) => {
@@ -55,13 +59,14 @@ export const PlanAssignments: React.FC<{ tenantId?: string }> = ({ tenantId }) =
     finally { setSaving(''); }
   };
   const unlink = async (row: Subscription) => {
-    if (saving || !window.confirm(`Desvincular o plano de ${row.nome}? Novas cobranças ficarão indisponíveis até configurar outro plano. O histórico de faturas permanece.`)) return;
+    if (saving) return;
     setSaving(row.tenantId); setNotice(null);
     try {
       const { data } = await api.patch<Subscription>(`/tenants/${row.tenantId}/plan`, { planId: null, expectedPlanId: row.plan?.id || null });
       setRows(current => current.map(item => item.tenantId === data.tenantId ? data : item));
       setChoices(current => { const next = { ...current }; delete next[row.tenantId]; return next; });
       setDraft(null);
+      setUnlinking(null);
       setNotice({ error: false, text: 'Plano desvinculado. O histórico de cobrança foi preservado.' });
     } catch (error) { setNotice({ error: true, text: errorText(error) }); }
     finally { setSaving(''); }
@@ -89,17 +94,19 @@ export const PlanAssignments: React.FC<{ tenantId?: string }> = ({ tenantId }) =
           <p className="plan-assignment-preview">{contract && !changed ? `Previsão pelo contrato: ${money(row.contractEstimatedCents ?? Math.max(contract.minimumStudents, activeAccounts) * contract.unitCents)}` : preview !== null ? `Referência do catálogo: ${money(preview)} — confirme o valor negociado abaixo` : 'Sem base de cobrança'}{!row.ativo && ' · unidade desativada'}</p>
           {selection && <p className="muted" style={{ fontSize: 12 }}>Recursos: videoaulas {selection.videoAulas ? 'incluídas' : 'não incluídas'} · provas {selection.provas ? 'incluídas' : 'não incluídas'} · IA {selection.ia ? 'liberada (integração pendente)' : 'não incluída'}</p>}
           {fixed && <p role="status" className="plan-contract-missing">Cobrança fixa ainda não é suportada neste vínculo. Escolha um plano por aluno.</p>}
-          <div className="plan-assignment-actions">{selectedId && !fixed && <button className="primary" disabled={!!saving} onClick={() => begin(row, selectedId)}>{contract && !changed ? 'Editar cobrança' : 'Configurar cobrança e salvar plano'}</button>}{changed && !selectedId && <button className="ghost" disabled={!!saving} onClick={() => void unlink(row)}>Desvincular plano</button>}{changed && <button className="ghost" disabled={!!saving} onClick={() => { setDraft(null); setChoices(current => { const next = { ...current }; delete next[row.tenantId]; return next; }); }}>Cancelar alteração</button>}</div>
-          {editing && draft && <form className="plan-contract-form" onSubmit={event => void save(row, event)}><h4>Condições de cobrança · {selection?.nome}</h4><p>Confirme os dados antes de vincular. O valor faturável será o maior entre o mínimo contratado e as contas de alunos ativas.</p><fieldset disabled={!!saving}>
-            <div className="plan-contract-grid"><label>Mínimo contratado de alunos<input type="number" required min="1" max="2147483647" step="1" value={draft.terms.minimumStudents || ''} onChange={event => update('minimumStudents', Number(event.target.value))} /></label><label>Preço negociado por aluno (R$)<input required inputMode="decimal" placeholder="0,00" value={draft.unit} onChange={event => setDraft(current => current ? { ...current, unit: event.target.value } : null)} /></label><label>Dia do vencimento<input type="number" required min="1" max="28" step="1" value={draft.terms.dueDay || ''} onChange={event => update('dueDay', Number(event.target.value))} /></label></div>
-            <h5>Instituição contratante</h5><div className="plan-contract-grid">{([['billingName', 'Razão social / nome', 180], ['billingDocument', 'CNPJ / CPF', 60], ['billingEmail', 'E-mail do financeiro', 254], ['billingAddress', 'Endereço completo', 500]] as const).map(([key, label, max]) => <label key={key}>{label}<input required type={key === 'billingEmail' ? 'email' : 'text'} maxLength={max} value={draft.terms[key]} onChange={event => update(key, event.target.value)} /></label>)}</div>
+          <div className="plan-assignment-actions">{selectedId && !fixed && <button className="primary" disabled={!!saving} onClick={() => begin(row, selectedId)}>{contract && !changed ? 'Editar cobrança' : 'Configurar cobrança e salvar plano'}</button>}{changed && !selectedId && <button className="ghost" disabled={!!saving} onClick={() => { setNotice(null); setUnlinking(row); }}>Desvincular plano</button>}{changed && <button className="ghost" disabled={!!saving} onClick={() => { setDraft(null); setChoices(current => { const next = { ...current }; delete next[row.tenantId]; return next; }); }}>Cancelar alteração</button>}</div>
+          {editing && draft && <AppDialog title={`Plano e cobrança · ${row.nome}`} eyebrow="CONTRATAÇÃO" description={selection?.nome} wide busy={!!saving} focusKey={step} onClose={() => setDraft(null)}><form className="plan-contract-form" onSubmit={event => { if (step < 2) { event.preventDefault(); setStep(current => current + 1); } else { void save(row, event); } }}><ol className="plans-progress" aria-label="Etapas do contrato">{['Condições', 'Dados de cobrança', 'Revisão'].map((label, index) => <li key={label} aria-current={step === index ? 'step' : undefined} className={step === index ? 'current' : step > index ? 'complete' : ''}><span>{index + 1}</span>{label}</li>)}</ol>{notice?.error && <div className="inline-form-error" role="alert">{notice.text}</div>}<fieldset disabled={!!saving}>
+            {step === 0 && <><h4>Condições do contrato</h4><p>O valor faturável considera o maior número entre o mínimo contratado e os alunos ativos.</p><div className="plan-contract-grid"><label>Mínimo contratado de alunos<input type="number" required min="1" max="2147483647" step="1" value={draft.terms.minimumStudents || ''} onChange={event => update('minimumStudents', Number(event.target.value))} /></label><label>Preço negociado por aluno (R$)<input required inputMode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0,00" value={draft.unit} onChange={event => setDraft(current => current ? { ...current, unit: event.target.value } : null)} /></label><label>Dia do vencimento<input type="number" required min="1" max="28" step="1" value={draft.terms.dueDay || ''} onChange={event => update('dueDay', Number(event.target.value))} /></label></div></>}
+            {step === 1 && <><h4>Instituição contratante</h4><div className="plan-contract-grid">{([['billingName', 'Razão social / nome', 180], ['billingDocument', 'CNPJ / CPF', 60], ['billingEmail', 'E-mail do financeiro', 254], ['billingAddress', 'Endereço completo', 500]] as const).map(([key, label, max]) => <label key={key}>{label}<input required type={key === 'billingEmail' ? 'email' : 'text'} maxLength={max} value={draft.terms[key]} onChange={event => update(key, event.target.value)} /></label>)}</div>
             <h5>Emitente</h5><div className="plan-contract-grid">{([['issuerName', 'Razão social / nome', 180], ['issuerDocument', 'CNPJ / CPF', 60], ['issuerAddress', 'Endereço completo', 500]] as const).map(([key, label, max]) => <label key={key}>{label}<input required maxLength={max} value={draft.terms[key]} onChange={event => update(key, event.target.value)} /></label>)}</div>
-            <label>Instruções de pagamento<textarea maxLength={2000} rows={3} value={draft.terms.paymentInstructions} placeholder="Forma de pagamento combinada com a instituição" onChange={event => update('paymentInstructions', event.target.value)} /></label>
+            <label>Instruções de pagamento<textarea maxLength={2000} rows={3} value={draft.terms.paymentInstructions} placeholder="Forma de pagamento combinada com a instituição" onChange={event => update('paymentInstructions', event.target.value)} /></label></>}
+            {step === 2 && <div className="plans-contract-review"><h4>Confira antes de salvar</h4><dl><div><dt>Instituição</dt><dd>{draft.terms.billingName}</dd></div><div><dt>Plano</dt><dd>{selection?.nome}</dd></div><div><dt>Mínimo de alunos</dt><dd>{draft.terms.minimumStudents.toLocaleString('pt-BR')}</dd></div><div><dt>Vencimento mensal</dt><dd>Dia {draft.terms.dueDay}</dd></div><div><dt>Contato financeiro</dt><dd>{draft.terms.billingEmail}</dd></div><div><dt>Emitente</dt><dd>{draft.terms.issuerName}</dd></div></dl><p>O contrato ficará disponível no Financeiro. A emissão da fatura é feita naquela tela.</p></div>}
             {draft.terms.minimumStudents > 0 && /^\d+(?:[.,]\d{1,2})?$/.test(draft.unit) && <p className="plan-contract-total">Mínimo mensal: <strong>{money(draft.terms.minimumStudents * Math.round(Number(draft.unit.replace(',', '.')) * 100))}</strong></p>}
-            <div className="plan-assignment-actions"><button className="primary" type="submit">{saving ? 'Salvando…' : 'Salvar plano e cobrança'}</button><button type="button" className="ghost" onClick={() => setDraft(null)}>Cancelar</button></div>
-          </fieldset></form>}
+            <div className="plan-assignment-actions">{step > 0 && <button type="button" className="ghost" onClick={() => setStep(current => current - 1)}>Voltar</button>}<button className="primary" type="submit">{saving ? 'Salvando…' : step < 2 ? 'Continuar' : 'Salvar plano e cobrança'}</button><button type="button" className="ghost" onClick={() => setDraft(null)}>Cancelar</button></div>
+          </fieldset></form></AppDialog>}
         </div>
       </article>;
     })}{!visible.length && <p className="plans-empty">Nenhuma instituição encontrada.</p>}</div>}
+    {unlinking && <AppDialog title="Desvincular plano?" eyebrow={unlinking.nome} busy={!!saving} onClose={() => setUnlinking(null)}><p>Novas cobranças ficarão indisponíveis até configurar outro plano. O histórico de faturas será preservado.</p>{notice?.error && <p role="alert" className="inline-form-error">{notice.text}</p>}<div className="plan-assignment-actions"><button className="ghost" disabled={!!saving} onClick={() => setUnlinking(null)}>Cancelar</button><button className="danger-action" disabled={!!saving} onClick={() => void unlink(unlinking)}>{saving ? 'Desvinculando…' : 'Desvincular plano'}</button></div></AppDialog>}
   </section>;
 };

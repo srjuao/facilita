@@ -1,0 +1,20 @@
+.app-dialog{box-sizing:border-box;width:min(620px,calc(100% - 28px));max-height:calc(100dvh - 40px);margin:auto;padding:0;border:1px solid var(--line);border-radius:20px;background:var(--paper);color:var(--ink);font:inherit;box-shadow:0 28px 90px #10274738;overflow-y:auto}
+.app-dialog-wide{width:min(860px,calc(100% - 28px))}
+.app-dialog::backdrop{background:#0d244b82;backdrop-filter:blur(5px)}
+.app-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:26px 28px 20px;border-bottom:1px solid var(--line-2)}
+.app-dialog-head>div{min-width:0}
+.app-dialog-head h2{font-size:clamp(20px,2.5vw,26px);line-height:1.25;overflow-wrap:anywhere}
+.app-dialog-eyebrow{margin:0 0 7px;color:var(--accent-ink);font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.app-dialog-description{margin:8px 0 0;color:var(--ink-2);line-height:1.55}
+.app-dialog-close{display:grid;place-items:center;flex:none;width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink-2)}
+.app-dialog-close:hover{background:var(--accent-soft);color:var(--accent-ink)}
+.app-dialog-body{padding:24px 28px 28px;min-width:0}
+.app-dialog-body form{min-width:0}
+.app-dialog-body label{display:grid;gap:7px;font-weight:700;color:var(--ink-2)}
+.app-dialog-body input,.app-dialog-body select,.app-dialog-body textarea{min-width:0;width:100%;border-radius:10px;padding:11px 12px}
+.app-dialog-body :is(.pc-radio,.pc-confirm,.as-correct){display:flex;align-items:center}
+.app-dialog-body input:is([type="radio"],[type="checkbox"]){width:18px;height:18px;padding:0;flex:none}
+.app-dialog-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;margin-top:24px;padding-top:18px;border-top:1px solid var(--line-2)}
+.app-dialog :is(button,input,select,textarea):focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+@media(max-width:620px){.app-dialog-head{padding:20px 18px 16px}.app-dialog-body{padding:20px 18px 22px}.app-dialog-actions{flex-direction:column-reverse}.app-dialog-actions button{width:100%;justify-content:center}}
+@media(prefers-reduced-motion:reduce){.app-dialog::backdrop{backdrop-filter:none}}

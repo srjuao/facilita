@@ -1,0 +1,16 @@
+.student-profile{max-width:980px}
+.student-profile-heading{margin:4px 0 24px}
+.student-profile-heading h1{margin:8px 0 6px}
+.student-profile-heading>p:last-child{color:var(--ink-2)}
+.student-profile-card{padding:0;overflow:hidden}
+.student-profile-identity{display:flex;align-items:center;gap:18px;padding:28px 30px;border-bottom:1px solid var(--line);background:linear-gradient(115deg,var(--accent-soft),var(--paper) 75%)}
+.student-profile-avatar{display:grid;place-items:center;flex:none;width:56px;height:56px;border-radius:16px;background:var(--accent);color:#fff;font:700 24px Sora,Manrope,sans-serif}
+.student-profile-identity h2{font-size:21px;overflow-wrap:anywhere}
+.student-profile-identity p{margin-top:4px;color:var(--ink-2)}
+.student-profile-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;margin:0;background:var(--line-2)}
+.student-profile-fields>div{min-width:0;padding:23px 30px;background:var(--paper)}
+.student-profile-fields dt{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.student-profile-fields dd{margin:10px 0 0;color:var(--ink);font-size:15px;font-weight:700;overflow-wrap:anywhere}
+.student-profile-note{margin:0;padding:18px 30px;color:var(--ink-2);background:var(--paper-2);border-top:1px solid var(--line-2)}
+.student-profile-empty{display:grid;justify-items:start;gap:9px;padding:34px}.student-profile-empty>svg{color:var(--accent)}.student-profile-empty p{color:var(--ink-2)}
+@media(max-width:650px){.student-profile-fields{grid-template-columns:1fr}.student-profile-identity,.student-profile-fields>div,.student-profile-note{padding-left:20px;padding-right:20px}}
