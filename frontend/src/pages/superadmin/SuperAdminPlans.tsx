@@ -11,6 +11,10 @@ import { PlanAssignments } from './PlanAssignments';
 import './SuperAdminPlans.css';
 
 const empty = { nome: '', descricao: '', billingMode: 'FAIXAS' as 'FIXO' | 'POR_ALUNO' | 'FAIXAS', points: [{ students: '', price: '' }, { students: '', price: '' }], price: '', limit: '', defaultMinimum: '', videoAulas: true, provas: true, ia: false };
+const sortPlansByStudents = (plans: Plan[]) => [...plans].sort((a, b) => {
+  const size = (plan: Plan) => plan.studentLimit ?? plan.defaultMinimumStudents ?? plan.pricePoints[0]?.students ?? Number.POSITIVE_INFINITY;
+  return size(a) - size(b) || a.nome.localeCompare(b.nome, 'pt-BR');
+});
 export const SuperAdminPlans: React.FC = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [tab, setTab] = useState<'catalog' | 'institutions' | 'public'>('catalog');
@@ -24,7 +28,7 @@ export const SuperAdminPlans: React.FC = () => {
   const [changing, setChanging] = useState('');
   const [statusPlan, setStatusPlan] = useState<Plan | null>(null);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
-  const load = async () => { setLoading(true); try { setPlans((await api.get<Plan[]>('/plans')).data); } catch { setNotice({ error: true, text: 'Não foi possível carregar os planos.' }); } finally { setLoading(false); } };
+  const load = async () => { setLoading(true); try { setPlans(sortPlansByStudents((await api.get<Plan[]>('/plans')).data)); } catch { setNotice({ error: true, text: 'Não foi possível carregar os planos.' }); } finally { setLoading(false); } };
   useEffect(() => { void load(); }, []);
   const create = async (event: React.FormEvent) => {
     event.preventDefault(); if (saving) return;
@@ -43,7 +47,7 @@ export const SuperAdminPlans: React.FC = () => {
     setSaving(true); setNotice(null);
     try {
       const { data } = await api.post<Plan>('/plans', { nome: form.nome.trim(), descricao: form.descricao.trim(), billingMode: form.billingMode, priceCents, pricePoints, studentLimit, defaultMinimumStudents, videoAulas: form.videoAulas, provas: form.provas, ia: form.ia });
-      setPlans(current => [...current, data]); setForm(empty); setOpen(false); setStep(0); setFilter(true);
+      setPlans(current => sortPlansByStudents([...current, data])); setForm(empty); setOpen(false); setStep(0); setFilter(true);
       setNotice({ error: false, text: 'Plano criado. Vincule-o às instituições na aba de vínculos.' });
     } catch (error: any) { setNotice({ error: true, text: error.response?.data?.error || 'Não foi possível criar o plano. Os dados continuam preenchidos.' }); }
     finally { setSaving(false); }

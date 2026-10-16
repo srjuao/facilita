@@ -35,3 +35,6 @@
   .app .side:hover .side-foot button,.app .side:focus-within .side-foot button{display:flex}
 }
 @media(prefers-reduced-motion:reduce){.app *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* The page content owns its top spacing; avoid an extra gap after the breadcrumb. */
+.workspace-topbar{margin-bottom:0}
