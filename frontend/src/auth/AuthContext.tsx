@@ -8,8 +8,6 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
-  completedModules: string[];
-  markModuleCompleted: (moduleName: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,11 +33,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [user]);
   
-  // Matérias Concluídas salvas no LocalStorage por Aluno
-  const [completedModules, setCompletedModules] = useState<string[]>(() => {
-    const saved = localStorage.getItem('facilita_completed_modules');
-    return saved ? JSON.parse(saved) : [];
-  });
 
   useEffect(() => {
     if (token) {
@@ -58,13 +51,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [token]);
 
-  const markModuleCompleted = (moduleName: string) => {
-    if (!completedModules.includes(moduleName)) {
-      const updated = [...completedModules, moduleName];
-      setCompletedModules(updated);
-      localStorage.setItem('facilita_completed_modules', JSON.stringify(updated));
-    }
-  };
 
   const login = async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
@@ -81,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading, completedModules, markModuleCompleted }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

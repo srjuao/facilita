@@ -95,8 +95,8 @@ export const AIChat: React.FC = () => {
             <button className="chip" onClick={() => handleSend('Explique de forma simples')}>
               Explique de forma simples
             </button>
-            <button className="chip" onClick={() => handleSend('Dê um caso clínico')}>
-              Dê um caso clínico
+            <button className="chip" onClick={() => handleSend('Dê um exemplo prático')}>
+              Dê um exemplo prático
             </button>
           </div>
         </div>

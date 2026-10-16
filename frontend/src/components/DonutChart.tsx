@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface DonutChartProps {
-  pct: number;
+  pct: number | null;
   size?: number;
   color?: string;
   label?: string;
@@ -13,9 +13,13 @@ export const DonutChart: React.FC<DonutChartProps> = ({
   color = 'var(--accent)',
   label = 'concluído'
 }) => {
+  if (pct === null || !Number.isFinite(pct)) {
+    return <p className="muted" role="status">Sem medição disponível.</p>;
+  }
+  const measuredPercentage = Math.min(100, Math.max(0, pct));
   const r = (size - 12) / 2;
   const c = 2 * Math.PI * r;
-  const strokeDasharray = `${(c * pct) / 100} ${c}`;
+  const strokeDasharray = `${(c * measuredPercentage) / 100} ${c}`;
 
   return (
     <div className="donut" style={{ width: `${size}px`, height: `${size}px`, position: 'relative', display: 'grid', placeItems: 'center' }}>
@@ -41,7 +45,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
         />
       </svg>
       <div className="c" style={{ position: 'absolute', textAlign: 'center', display: 'flex', flexDirection: 'column' }}>
-        <b className="num" style={{ fontSize: '18px', fontWeight: 800 }}>{pct}%</b>
+        <b className="num" style={{ fontSize: '18px', fontWeight: 800 }}>{measuredPercentage}%</b>
         <small style={{ fontSize: '10px', color: 'var(--muted)' }}>{label}</small>
       </div>
     </div>

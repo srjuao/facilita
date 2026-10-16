@@ -1,5 +1,4 @@
 import React from 'react';
-import { Search } from 'lucide-react';
 import { WordMark } from './WordMark';
 
 interface TopBarProps {
@@ -24,21 +23,7 @@ export const TopBar: React.FC<TopBarProps> = ({ courseName, currentPage }) => {
         <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{currentPage}</span>
       </div>
 
-      <div style={{ position: 'relative', width: '320px' }}>
-        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
-        <input 
-          type="text" 
-          placeholder="Buscar aluno, aula, matéria..." 
-          style={{
-            paddingLeft: '36px',
-            fontSize: '13px',
-            borderRadius: '999px',
-            background: 'var(--paper-2)',
-            border: '1px solid var(--line)',
-            height: '36px'
-          }}
-        />
-      </div>
+
     </header>
   );
 };

@@ -42,7 +42,7 @@ import { SuperAdminAccount } from './pages/superadmin/SuperAdminAccount';
 export const AppContent: React.FC = () => {
   const { user, loading, logout } = useAuth();
   const [currentView, setCurrentView] = useState<string>('default');
-  const [selectedLessonId, setSelectedLessonId] = useState<string>('les_1');
+  const [selectedLessonId, setSelectedLessonId] = useState<string>('');
 
   if (loading) {
     return <div style={{ padding: '40px', textAlign: 'center' }}>Carregando FacilitaEstudos...</div>;
@@ -81,7 +81,7 @@ export const AppContent: React.FC = () => {
       'al-flash': { title: 'Flashcards', kind: 'empty' },
       'al-plano': { title: 'Plano de estudos', kind: 'empty' }
     };
-    if (records[activeView]) return <CourseRecords {...records[activeView]} />;
+    if (records[activeView]) return <CourseRecords {...records[activeView]} onOpenLesson={user.role === 'aluno' ? handleOpenLesson : undefined} />;
     switch (activeView) {
       // Aluno
       case 'al-inicio': return <StudentHome onNavigate={setCurrentView} />;

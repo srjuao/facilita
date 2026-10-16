@@ -5,57 +5,21 @@ import { Tenant } from '../../types';
 
 export const SuperAdminCourses: React.FC = () => {
   const [tenants, setTenants] = useState<Tenant[]>([]);
-
-  useEffect(() => {
-    api.get('/tenants')
-      .then(res => setTenants(res.data))
-      .catch(err => console.error(err));
-  }, []);
-
-  const allCourses = tenants.flatMap(t => t.courses.map(c => ({ ...c, tenantName: t.nome })));
-
-  return (
-    <div>
-      <TopBar currentPage="Cursos" />
-      <div style={{ padding: '0 28px 40px' }}>
-        <div className="page-head" style={{ marginBottom: '20px' }}>
-          <div>
-            <h1>Cursos Cadastrados na Plataforma</h1>
-            <p>Lista consolidada de todos os cursos ativos e em implantação nas faculdades.</p>
-          </div>
-        </div>
-
-        <div className="card">
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--line)' }}>
-                <th style={{ padding: '10px' }}>Curso</th>
-                <th style={{ padding: '10px' }}>Faculdade</th>
-                <th style={{ padding: '10px' }}>Status</th>
-                <th style={{ padding: '10px', textAlign: 'right' }}>Alunos</th>
-                <th style={{ padding: '10px', textAlign: 'right' }}>Aulas</th>
-                <th style={{ padding: '10px', textAlign: 'right' }}>Adesão</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allCourses.map((c, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid var(--line-2)' }}>
-                  <td style={{ padding: '12px 10px' }}><b>{c.nome}</b></td>
-                  <td style={{ padding: '12px 10px' }}>{c.tenantName}</td>
-                  <td style={{ padding: '12px 10px' }}>
-                    <span className={`pill ${c.status === 'Ativo' ? 'good' : c.status === 'Em implantação' ? 'warn' : 'neutral'}`}>
-                      {c.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 10px', textAlign: 'right' }}>{c.alunos || c.previstos}</td>
-                  <td style={{ padding: '12px 10px', textAlign: 'right' }}>{c.aulas}</td>
-                  <td style={{ padding: '12px 10px', textAlign: 'right' }}>{c.adesao}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const load = async () => {
+    setLoading(true); setError('');
+    try { setTenants((await api.get('/tenants')).data); }
+    catch { setError('Não foi possível carregar os cursos. Nenhuma contagem foi estimada.'); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { void load(); }, []);
+  const courses = tenants.flatMap(tenant => tenant.courses.map(course => ({ ...course, tenantName: tenant.nome, tenantActive: tenant.ativo }))).filter(course => `${course.nome} ${course.tenantName}`.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
+  return <><TopBar currentPage="Cursos cadastrados" /><section className="sa-plans">
+    <header className="plans-section-heading"><div><p className="eyebrow">CONTEÚDO DA PLATAFORMA</p><h1>Cursos cadastrados</h1><p className="muted">Contagens dos registros existentes. Previsões de matrícula não são alunos cadastrados.</p></div><button className="ghost" disabled={loading} onClick={() => void load()}>Atualizar</button></header>
+    {error && <div role="alert" className="inline-form-error">{error}</div>}
+    <label className="plans-search">Buscar curso ou instituição<input value={search} onChange={event => setSearch(event.target.value)} /></label>
+    {loading ? <p role="status">Carregando cursos…</p> : !error && <div className="finance-table-wrap"><table className="finance-table"><thead><tr><th>Curso</th><th>Instituição</th><th>Situação cadastrada</th><th>Alunos matriculados</th><th>Matérias</th><th>Videoaulas</th><th>Avaliações</th></tr></thead><tbody>{courses.map(course => <tr key={course.id}><td><b>{course.nome}</b></td><td>{course.tenantName}<small>{course.tenantActive ? 'Instituição ativa' : 'Instituição desativada'}</small></td><td>{course.status || 'Não informada'}</td><td>{course._count?.students ?? '—'}</td><td>{course._count?.modules ?? '—'}</td><td>{course.modules ? course.modules.reduce((sum, module) => sum + module._count.lessons, 0) : '—'}</td><td>{course._count?.exams ?? '—'}</td></tr>)}</tbody></table>{!courses.length && <p className="plans-empty">Nenhum curso encontrado.</p>}</div>}
+  </section></>;
 };

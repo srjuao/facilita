@@ -56,7 +56,7 @@ export const Login: React.FC<{ superAdmin?: boolean }> = ({ superAdmin = false }
             {brand?.loginDescription || (superAdmin ? 'Gerencie faculdades, acessos, domínios e identidade de cada unidade com segurança e contexto.' : 'Uma plataforma para a instituição, coordenação e alunos seguirem juntos — com clareza, contexto e evolução em cada etapa.')}
           </p>
           <div className="brand-list">
-            {(superAdmin ? ['Faculdades', 'Acessos', 'Domínios', 'Identidade'] : ['Medicina', 'Odontologia', 'Enfermagem', 'Direito', 'Psicologia', 'Fisioterapia']).map((c) => (
+            {(superAdmin ? ['Faculdades', 'Acessos', 'Domínios', 'Identidade'] : ['Cursos', 'Professores', 'Alunos']).map((c) => (
               <span key={c}>{c}</span>
             ))}
           </div>

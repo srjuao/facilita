@@ -15,7 +15,7 @@ export const getCourseDetails = async (req: AuthRequest, res: Response) => {
       include: {
         tenant: true,
         modules: { include: { lessons: true } },
-        exams: true,
+        exams: { include: { _count: { select: { questions: true } } } },
         students: true
       }
     });

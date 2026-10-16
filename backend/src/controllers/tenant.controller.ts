@@ -28,7 +28,7 @@ export const getTenants = async (req: AuthRequest, res: Response) => {
       where: req.user?.role === 'superadmin'
         ? undefined
         : { id: req.user?.tenantId, ativo: true },
-      include: { courses: { include: { _count: { select: { students: true } } } }, _count: { select: { users: true } } },
+      include: { courses: { include: { _count: { select: { students: true, modules: true, exams: true } }, modules: { select: { _count: { select: { lessons: true } } } } } }, _count: { select: { users: true } } },
       orderBy: [{ ativo: 'desc' }, { nome: 'asc' }]
     });
     return res.json(tenants);

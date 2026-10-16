@@ -42,8 +42,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
       { id: 'sa-plans', label: 'Planos e assinaturas', icon: <Layers size={18} /> },
       { id: 'sa-fin', label: 'Financeiro', icon: <DollarSign size={18} /> },
       { id: 'sa-account', label: 'Minha conta', icon: <User size={18} /> },
-      { sec: 'Instituição selecionada' },
-      { id: 'co-dash', label: 'Entrar na coordenação', icon: <ArrowRight size={18} /> },
     ],
     coord: [
       { sec: 'Acompanhamento' },
@@ -78,7 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
 
   const plan = role !== 'superadmin' ? user.tenant?.plan : null;
   const navItems = (NAVS[role] || NAVS.aluno).filter(item => !((item.id === 'al-ia' && plan?.ia === false) || (['al-provas', 'co-provas'].includes(item.id || '') && plan?.provas === false)));
-  const tenantName = user.tenant?.nome || 'UNIFAN';
+  const tenantName = user.tenant?.nome || (role === 'superadmin' ? 'Administração da plataforma' : 'Instituição não vinculada');
   const tenantLogo = user.role !== 'superadmin' ? user.tenant?.logoUrl : '';
 
   return (
@@ -115,7 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
 
       <div className="side-foot">
         <div className="avatar">
-          <img src={`https://i.pravatar.cc/96?img=${user.photo}`} alt="" />
+          <span aria-hidden="true">{user.nome.trim().slice(0, 1).toLocaleUpperCase('pt-BR')}</span>
         </div>
         <div className="txt">
           <b>{user.nome}</b>

@@ -174,8 +174,8 @@ model Lesson {
   titulo      String
   desc        String
   videoUrl    String
-  duracao     String   @default("45 min")
-  prof        String   @default("Prof. Dr. Sérgio Amaral")
+  duracao     String   @default("")
+  prof        String   @default("")
   pdfUrl      String?
   moduleId    String
   module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)

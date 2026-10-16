@@ -14,7 +14,8 @@ export interface User {
 }
 
 export interface Course {
-  _count?: { students: number };
+  _count?: { students: number; modules?: number; exams?: number };
+  modules?: { _count: { lessons: number } }[];
   id: string;
   nome: string;
   status: string;
