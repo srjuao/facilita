@@ -17,6 +17,7 @@ import { assignPlan, createPlan, getPlans, getSubscriptions, updatePlanStatus, g
 import { featureGate } from './controllers/plan-access';
 import { streamLessonMedia } from './controllers/media-access';
 import { institutionRouter } from './institution/router';
+import { commerceRouter } from './commerce/router';
 import { requireInstitutionPermission, requireInstitutionSession } from './institution/policy';
 import path from 'path';
 
@@ -48,6 +49,7 @@ app.get('/api/auth/me', authenticateToken, getMe);
 app.patch('/api/auth/password', authenticateToken, authorizeRoles('superadmin'), changePassword);
 app.patch('/api/auth/profile', authenticateToken, authorizeRoles('superadmin'), updateProfile);
 app.use('/api/institution', authenticateToken, institutionRouter);
+app.use('/api/institution-commerce', authenticateToken, commerceRouter);
 app.get('/api/public/tenant-branding', getPublicTenantBranding);
 app.post('/api/public/leads', createPublicLead);
 app.get('/api/public/pricing', getPublicPricing);

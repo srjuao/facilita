@@ -29,6 +29,7 @@ import { CoordReport } from './pages/coord/CoordReport';
 import { CoordCourseManager } from './pages/coord/CoordCourseManager';
 import { CoordUnitSetup } from './pages/coord/CoordUnitSetup';
 import { InstitutionWorkspace } from './pages/institution/InstitutionWorkspace';
+import { PaidCourses } from './pages/institution/PaidCourses';
 
 // SuperAdmin Pages
 import { SuperAdminOverview } from './pages/superadmin/SuperAdminOverview';
@@ -44,6 +45,8 @@ export const AppContent: React.FC = () => {
   const { user, loading, logout } = useAuth();
   const [currentView, setCurrentView] = useState<string>('default');
   const [selectedLessonId, setSelectedLessonId] = useState<string>('');
+  const [selectedPaidCourseId, setSelectedPaidCourseId] = useState('');
+  const [lessonReturnView, setLessonReturnView] = useState('al-materias');
 
   if (loading) {
     return <div style={{ padding: '40px', textAlign: 'center' }}>Carregando FacilitaEstudos...</div>;
@@ -55,6 +58,7 @@ export const AppContent: React.FC = () => {
   if (!isSuperAdminPortal && user.role === 'superadmin') return <SuperAdminLogin />;
 
   const handleOpenLesson = (lessonId: string) => {
+    setLessonReturnView(activeView === 'al-paid-course' ? 'al-paid-course' : 'al-materias');
     setSelectedLessonId(lessonId);
     setCurrentView('al-aula');
   };
@@ -65,6 +69,8 @@ export const AppContent: React.FC = () => {
     : currentView;
 
   const renderView = () => {
+    if (activeView === 'co-sales' || activeView === 'al-store') return <PaidCourses onOpenCourse={courseId => { setSelectedPaidCourseId(courseId); setCurrentView('al-paid-course'); }} />;
+    if (activeView === 'al-paid-course') return <CourseRecords title="Conteúdo do curso" kind="modules" courseId={selectedPaidCourseId} onOpenLesson={handleOpenLesson} onShowCatalog={() => setCurrentView('al-store')} />;
     const sections = { 'co-notices': 'notices', 'co-subs': 'classes', 'co-team': 'team', 'co-chat': 'chat', 'al-notices': 'notices', 'al-classes': 'classes', 'al-chat': 'chat' } as const;
     if (activeView in sections) return <InstitutionWorkspace section={sections[activeView as keyof typeof sections]} />;
     if (user.role === 'professor' && ((activeView === 'co-gestao' && !user.permissions?.includes('content.manage')) || (activeView === 'co-alunos' && !user.permissions?.includes('students.manage')))) return <section className="unit-setup"><div className="card"><h1>Acesso não autorizado</h1><p>A coordenação ainda não liberou esta função para sua conta.</p></div></section>;
@@ -84,13 +90,13 @@ export const AppContent: React.FC = () => {
       'al-flash': { title: 'Flashcards', kind: 'empty' },
       'al-plano': { title: 'Plano de estudos', kind: 'empty' }
     };
-    if (records[activeView]) return <CourseRecords {...records[activeView]} onOpenLesson={user.role === 'aluno' ? handleOpenLesson : undefined} />;
+    if (records[activeView]) return <CourseRecords {...records[activeView]} onOpenLesson={user.role === 'aluno' ? handleOpenLesson : undefined} onShowCatalog={user.role === 'aluno' ? () => setCurrentView('al-store') : undefined} />;
     switch (activeView) {
       // Aluno
       case 'al-inicio': return <StudentHome onNavigate={setCurrentView} />;
       case 'al-periodos': return <StudentPeriods onNavigateView={setCurrentView} onNavigateLesson={handleOpenLesson} />;
       case 'al-materias': return <StudentSubjects onOpenLesson={handleOpenLesson} />;
-      case 'al-aula': return <LessonPlayer lessonId={selectedLessonId} onBack={() => setCurrentView('al-materias')} />;
+      case 'al-aula': return <LessonPlayer lessonId={selectedLessonId} onBack={() => setCurrentView(lessonReturnView)} />;
       case 'al-plano': return <StudentStudyPlan />;
       case 'al-flash': return <StudentFlashcards />;
       case 'al-ia': return <AIChat />;

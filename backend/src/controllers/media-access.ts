@@ -2,6 +2,8 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { Request, Response } from 'express';
 import path from 'path';
 import { PrismaClient } from '@prisma/client';
+import { assertCourseContentAccess } from '../commerce/access';
+import { PlanError } from './plan-policy';
 const prisma = new PrismaClient();
 const MAX_AGE = 2 * 60 * 60;
 const secret = () => {
@@ -35,14 +37,16 @@ export async function streamLessonMedia(req: Request, res: Response) {
       prisma.lesson.findUnique({ where: { id: req.params.id }, include: { module: { include: { course: true } } } })
     ]);
     if (!account || !lesson) return res.status(404).json({ error: 'Vídeo não encontrado.' });
-    if (account.role !== 'superadmin' && (!account.tenant?.ativo || (account.role !== 'coord' && account.courseId !== lesson.module.courseId) || account.tenantId !== lesson.module.course.tenantId || account.tenant.plan && !account.tenant.plan.videoAulas)) return res.status(403).json({ error: 'Seu acesso a este vídeo não está mais disponível.' });
+    if (account.role !== 'superadmin' && (!account.tenant?.ativo || account.tenant.plan && !account.tenant.plan.videoAulas)) return res.status(403).json({ error: 'Seu acesso a este vídeo não está mais disponível.' });
+    await assertCourseContentAccess(account, lesson.module.course);
     const filename = localVideoFilename(lesson.videoUrl);
     if (!filename) return res.status(404).json({ error: 'Vídeo local não encontrado.' });
     // sendFile supports HTTP Range requests for native HTML video seeking.
     return res.sendFile(path.resolve(__dirname, '../../uploads/videos', filename), error => {
       if (error && !res.headersSent) res.status(404).json({ error: 'Arquivo de vídeo não encontrado.' });
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof PlanError && !res.headersSent) return res.status(error.status).json({ error: error.message });
     if (!res.headersSent) return res.status(503).json({ error: 'Não foi possível verificar o acesso ao vídeo.' });
   }
 }

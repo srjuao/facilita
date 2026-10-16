@@ -3,9 +3,10 @@ const assert = require('node:assert/strict');
 const Module = require('node:module');
 process.env.JWT_SECRET = 'test-only-secret-not-used-in-production-12345';
 let account = { id: 'user', role: 'aluno', tenantId: 'tenant', courseId: 'course', tenant: { ativo: true, plan: { videoAulas: true } } };
-let lesson = { id: 'lesson', videoUrl: '/uploads/videos/video-123.mp4', module: { courseId: 'course', course: { tenantId: 'tenant' } } };
+let lesson = { id: 'lesson', videoUrl: '/uploads/videos/video-123.mp4', module: { courseId: 'course', course: { id: 'course', tenantId: 'tenant', paidContent: false, contentPriceCents: 0 } } };
+let entitled = false;
 let reads = 0;
-const db = { user: { findUnique: async () => { reads++; return account; } }, lesson: { findUnique: async () => { reads++; return lesson; } } };
+const db = { user: { findUnique: async () => { reads++; return account; } }, lesson: { findUnique: async () => { reads++; return lesson; } }, courseEntitlement: { findUnique: async () => ({ active: entitled }) } };
 const originalLoad = Module._load;
 let media;
 try {
@@ -45,6 +46,19 @@ test('stream uses current account permissions and plan, never signature-only aut
   const r = response(); await media.streamLessonMedia(request, r);
   assert.equal(r.code, 200); assert.match(r.file, /uploads\/videos\/video-123\.mp4$/);
   assert.equal(r.headers['Cache-Control'], 'private, no-store'); assert.equal(r.headers['Referrer-Policy'], 'no-referrer');
+});
+test('paid stream rechecks entitlement and revocation even with an unexpired signed URL', async () => {
+  account = { id: 'user', role: 'aluno', tenantId: 'tenant', courseId: 'course', tenant: { ativo: true, plan: null } };
+  lesson.module.course.paidContent = true;
+  lesson.module.course.contentPriceCents = 5990;
+  const request = { params: { id: 'lesson' }, query: query(media.signedLesson(lesson, 'user').videoUrl) };
+  entitled = false;
+  let r = response(); await media.streamLessonMedia(request, r); assert.equal(r.code, 403); assert.equal(r.file, undefined);
+  entitled = true;
+  r = response(); await media.streamLessonMedia(request, r); assert.equal(r.code, 200);
+  entitled = false;
+  r = response(); await media.streamLessonMedia(request, r); assert.equal(r.code, 403); assert.equal(r.file, undefined);
+  lesson.module.course.paidContent = false;
 });
 test('deleted user, missing lesson or nonlocal database path cannot be streamed', async () => {
   const request = { params: { id: 'lesson' }, query: query(media.signedLesson(lesson, 'user').videoUrl) };

@@ -121,6 +121,12 @@ model Course {
   users     User[]
   classGroups ClassGroup[]
   academicPeriods AcademicPeriod[]
+  paidContent Boolean @default(false)
+  contentPriceCents Int @default(0)
+  saleVersion Int @default(0)
+  entitlements CourseEntitlement[]
+  accessEvents CourseAccessEvent[]
+  accessRequests CourseAccessRequest[]
 }
 
 model User {
@@ -143,6 +149,53 @@ model User {
   announcements Announcement[]
   conversations Conversation[]
   conversationMessages ConversationMessage[]
+  courseEntitlements CourseEntitlement[] @relation("EntitledStudent")
+  grantedCourseEntitlements CourseEntitlement[] @relation("EntitlementActor")
+  courseAccessRequests CourseAccessRequest[]
+  courseAccessEvents CourseAccessEvent[] @relation("AccessStudent")
+  authoredCourseAccessEvents CourseAccessEvent[] @relation("AccessActor")
+}
+
+model CourseEntitlement {
+  id String @id @default(cuid())
+  courseId String
+  userId String
+  active Boolean @default(true)
+  reason String
+  actorId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  course Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  user User @relation("EntitledStudent", fields: [userId], references: [id], onDelete: Restrict)
+  actor User @relation("EntitlementActor", fields: [actorId], references: [id], onDelete: Restrict)
+  @@unique([courseId, userId])
+  @@index([userId, active])
+}
+
+model CourseAccessEvent {
+  id String @id @default(cuid())
+  courseId String
+  userId String
+  actorId String
+  action String
+  reason String
+  createdAt DateTime @default(now())
+  course Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  user User @relation("AccessStudent", fields: [userId], references: [id], onDelete: Restrict)
+  actor User @relation("AccessActor", fields: [actorId], references: [id], onDelete: Restrict)
+  @@index([courseId, userId, createdAt])
+}
+
+model CourseAccessRequest {
+  id String @id @default(cuid())
+  courseId String
+  userId String
+  quotedPriceCents Int
+  createdAt DateTime @default(now())
+  course Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  @@unique([courseId, userId])
+  @@index([userId])
 }
 
 model Department {
