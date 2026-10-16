@@ -3,7 +3,7 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { AuthRequest } from '../middleware/auth';
 import { PlanError } from '../controllers/plan-policy';
-import { billingAmount, contractData, dueDate, integer } from './policy';
+import { assertClosureReached, billingAmount, contractData, dueDate, integer } from './policy';
 
 export const financeDb = new PrismaClient();
 export const platformFinanceRouter = Router();
@@ -66,9 +66,10 @@ platformFinanceRouter.post('/invoices', wrap(async (req, res) => {
     if (!contract) throw new PlanError(409, 'Cadastre o contrato antes de emitir uma cobrança.');
     if (contract.version !== expectedContractVersion) throw new PlanError(409, 'O contrato mudou. Atualize e revise os valores antes de emitir.');
     if (await tx.platformInvoice.findUnique({ where: { tenantId_competence: { tenantId, competence } } })) throw new PlanError(409, 'Já existe uma cobrança nesta competência, inclusive se cancelada.');
+    const closingDate = assertClosureReached(competence, contract.closingDay);
     const activeStudents = await tx.user.count({ where: { tenantId, role: 'aluno', disabledAt: null } });
     const { tenantId: _tenant, version, updatedBy: _actor, createdAt: _created, updatedAt: _updated, dueDay, ...snapshot } = contract;
-    return tx.platformInvoice.create({ data: { ...snapshot, tenantId, competence, number: `FAT-${competence.replace('-', '')}-${randomUUID().toUpperCase()}`, dueDate: dueDate(competence, dueDay), contractVersion: version, activeStudents, ...billingAmount(contract.minimumStudents, activeStudents, contract.unitCents), events: { create: { action: 'CREATED', note: 'Fatura interna emitida, sem registro bancário ou envio automático.', actorId: currentActor.id, actorName: currentActor.nome } } }, include: { events } });
+    return tx.platformInvoice.create({ data: { ...snapshot, tenantId, competence, number: `FAT-${competence.replace('-', '')}-${randomUUID().toUpperCase()}`, closingDate, dueDate: dueDate(competence, dueDay, contract.closingDay), contractVersion: version, activeStudents, ...billingAmount(contract.minimumStudents, activeStudents, contract.unitCents), events: { create: { action: 'CREATED', note: 'Fatura interna emitida, sem registro bancário ou envio automático.', actorId: currentActor.id, actorName: currentActor.nome } } }, include: { events } });
   });
   res.status(201).json({ invoice });
 }));

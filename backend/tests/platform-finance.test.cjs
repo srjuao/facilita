@@ -1,9 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { billingAmount, dueDate } = require('../dist/platform-finance/policy');
+const { assertClosureReached, billingAmount, closingDate, contractData, dueDate } = require('../dist/platform-finance/policy');
 const { financeDb: db, platformFinanceRouter: router } = require('../dist/platform-finance/router');
 let account = { id: 'admin', nome: 'Admin', role: 'superadmin', disabledAt: null, tenantId: null };
-const contract = { tenantId: 'tenant-a', minimumStudents: 1000, unitCents: 430, dueDay: 10, billingName: 'Institution', billingDocument: 'Document', billingAddress: 'Address', billingEmail: 'finance@example.invalid', issuerName: 'Facilita', issuerDocument: 'Issuer document', issuerAddress: 'Issuer address', paymentInstructions: '', version: 0, updatedBy: 'admin', createdAt: new Date(), updatedAt: new Date() };
+const contract = { tenantId: 'tenant-a', minimumStudents: 1000, unitCents: 430, dueDay: 10, closingDay: 1, billingName: 'Institution', billingDocument: 'Document', billingAddress: 'Address', billingEmail: 'finance@example.invalid', issuerName: 'Facilita', issuerDocument: 'Issuer document', issuerAddress: 'Issuer address', paymentInstructions: '', version: 0, updatedBy: 'admin', createdAt: new Date(), updatedAt: new Date() };
 const tx = { $queryRaw: async () => [], user: { findUnique: async () => account, count: async ({ where }) => { assert.deepEqual(where, { tenantId: 'tenant-a', role: 'aluno', disabledAt: null }); return 1100; } }, tenant: { findUnique: async () => ({ id: 'tenant-a', ativo: true, planId: 'plan' }) }, platformContract: { findUnique: async () => contract }, platformInvoice: { findUnique: async () => null, create: async ({ data }) => ({ id: 'invoice', ...data }) } };
 db.user.findUnique = async () => account;
 db.$transaction = async callback => callback(tx);
@@ -24,8 +24,19 @@ test('contract minimum floors billing and excess is exact cents, never staff cou
 });
 test('competence date is exact UTC and rejects invalid months and day', () => {
   assert.equal(dueDate('2026-02', 28).toISOString(), '2026-02-28T00:00:00.000Z');
+  assert.equal(closingDate('2026-02', 20).toISOString(), '2026-02-20T00:00:00.000Z');
+  assert.equal(dueDate('2026-12', 10, 20).toISOString(), '2027-01-10T00:00:00.000Z');
+  assert.equal(dueDate('2026-02', 20, 20).toISOString(), '2026-02-20T00:00:00.000Z');
   for (const value of ['2026-13', '2026-00', '2026-2', '<script>']) assert.throws(() => dueDate(value, 10));
   assert.throws(() => dueDate('2026-02', 31));
+  assert.throws(() => closingDate('2026-02', 29));
+  assert.throws(() => contractData({ ...contract, closingDay: 0 }));
+  assert.throws(() => contractData({ ...contract, closingDay: 29 }));
+});
+test('issuance cutoff uses Sao Paulo civil date and rejects future competences', () => {
+  assert.throws(() => assertClosureReached('2026-10', 20, new Date('2026-10-20T02:59:59.000Z')), { status: 409 });
+  assert.equal(assertClosureReached('2026-10', 20, new Date('2026-10-20T03:00:00.000Z')).toISOString(), '2026-10-20T00:00:00.000Z');
+  assert.throws(() => assertClosureReached('2026-11', 1, new Date('2026-10-31T23:59:59.000Z')), { status: 409 });
 });
 test('current role and disabled account override forged token role', async () => {
   for (const role of ['coord', 'staff', 'professor', 'aluno']) {
@@ -44,6 +55,18 @@ test('invoice snapshots server contract and counts, ignores forged totals', asyn
   assert.equal(result.body.invoice.billingName, 'Institution');
   assert.equal(result.body.invoice.events.create.actorId, 'admin');
   assert.equal(result.body.invoice.contractVersion, 0);
+  assert.equal(result.body.invoice.closingDate.toISOString(), '2026-10-01T00:00:00.000Z');
+});
+test('invoice issuance after cutoff rolls due date to next month if due day precedes closing', async () => {
+  const previous = contract.closingDay;
+  contract.closingDay = 20;
+  try {
+    const result = await request('/invoices', 'POST', { tenantId: 'tenant-a', competence: '2026-09', expectedContractVersion: 0 });
+    assert.equal(result.code, 201);
+    assert.equal(result.body.invoice.closingDate.toISOString(), '2026-09-20T00:00:00.000Z');
+    assert.equal(result.body.invoice.dueDate.toISOString(), '2026-10-10T00:00:00.000Z');
+    assert.equal((await request('/invoices', 'POST', { tenantId: 'tenant-a', competence: '2027-01', expectedContractVersion: 0 })).code, 409);
+  } finally { contract.closingDay = previous; }
 });
 test('global superadmin can read and issue despite an inactive legacy institution link', async () => {
   const previous = account;

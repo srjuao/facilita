@@ -2,10 +2,10 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
 const { validatePlan, estimatedCents, assertCapacity } = require('../dist/controllers/plan-policy');
-const valid = { nome: ' Básico ', descricao: '', billingMode: 'POR_ALUNO', priceCents: 430, studentLimit: 20, videoAulas: true, provas: false, ia: false };
+const valid = { nome: ' Básico ', descricao: '', billingMode: 'POR_ALUNO', priceCents: 430, studentLimit: 20, defaultMinimumStudents: null, videoAulas: true, provas: false, ia: false };
 test('plan validates explicit booleans, integer cents and bounds; ignores caller identities/status', () => {
   assert.deepEqual(validatePlan({ ...valid, id: 'override', ativo: false }), { ...valid, nome: 'Básico' });
-  for (const patch of [{ nome: '' }, { nome: 'x'.repeat(101) }, { descricao: null }, { descricao: 'x'.repeat(1001) }, { billingMode: 'year' }, { priceCents: -1 }, { priceCents: 1.2 }, { priceCents: '430' }, { priceCents: 100000001 }, { studentLimit: 0 }, { studentLimit: 1.1 }, { studentLimit: undefined }, { videoAulas: 'true' }, { provas: undefined }, { ia: 1 }]) assert.throws(() => validatePlan({ ...valid, ...patch }));
+  for (const patch of [{ nome: '' }, { nome: 'x'.repeat(101) }, { descricao: null }, { descricao: 'x'.repeat(1001) }, { billingMode: 'year' }, { priceCents: -1 }, { priceCents: 1.2 }, { priceCents: '430' }, { priceCents: 100000001 }, { studentLimit: 0 }, { studentLimit: 1.1 }, { studentLimit: undefined }, { defaultMinimumStudents: 0 }, { defaultMinimumStudents: 21 }, { defaultMinimumStudents: 1.1 }, { videoAulas: 'true' }, { provas: undefined }, { ia: 1 }]) assert.throws(() => validatePlan({ ...valid, ...patch }));
   assert.equal(validatePlan({ ...valid, studentLimit: null }).studentLimit, null);
 });
 test('estimates monthly costs without rounding floats or mistaking an unconfigured plan for free', () => {
@@ -28,7 +28,7 @@ let academic = 2, unassigned = 1, events = [], saves = 0;
 let account = { id: 'user', email: 'u@example.test', role: 'aluno', tenantId: 'tenant', courseId: 'new-course', studentId: 4, tenant };
 let adminAccount = { id: 'admin', role: 'superadmin', disabledAt: null };
 let billingContract = null;
-const terms = { minimumStudents: 10, unitCents: 430, dueDay: 10, billingName: 'Escola', billingDocument: '123', billingAddress: 'Rua Teste', billingEmail: 'finance@example.test', issuerName: 'Facilita', issuerDocument: '456', issuerAddress: 'Rua Emitente', paymentInstructions: '' };
+const terms = { minimumStudents: 10, unitCents: 430, dueDay: 10, closingDay: 1, billingName: 'Escola', billingDocument: '123', billingAddress: 'Rua Teste', billingEmail: 'finance@example.test', issuerName: 'Facilita', issuerDocument: '456', issuerAddress: 'Rua Emitente', paymentInstructions: '' };
 const assignment = (planId = 'plan', expectedPlanId = null) => ({ planId, expectedPlanId, billingContract: terms, expectedContractVersion: billingContract?.version ?? null });
 const db = {
   $queryRaw: async (sql, id) => { events.push(sql[0].includes('Tenant') ? 'lock-tenant' : sql[0].includes('User') ? 'lock-user' : 'lock-plan'); return id === 'missing' ? [] : [{ id }]; },

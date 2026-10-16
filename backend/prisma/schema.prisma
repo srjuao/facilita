@@ -147,6 +147,7 @@ model PlatformContract {
   minimumStudents Int
   unitCents Int
   dueDay Int
+  closingDay Int @default(1)
   billingName String
   billingDocument String
   billingAddress String
@@ -168,6 +169,8 @@ model PlatformInvoice {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   competence String
   dueDate DateTime
+  closingDate DateTime
+  closingDay Int @default(1)
   minimumStudents Int
   activeStudents Int
   billableStudents Int
@@ -216,6 +219,7 @@ model Plan {
   billingMode  BillingMode
   priceCents   Int
   studentLimit Int?
+  defaultMinimumStudents Int?
   videoAulas   Boolean
   provas       Boolean
   ia           Boolean

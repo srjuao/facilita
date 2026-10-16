@@ -27,7 +27,7 @@ test('PostgreSQL: contracts, invoice snapshots, concurrent issuance and manual s
     await db.tenant.create({ data: { id: tenantId, nome: 'Local validation', full: '', cidade: '', color: '', cover: '', dominio: `${suffix}.invalid`, admin: '', since: '' } });
     admin = await db.user.create({ data: { nome: 'Local operator', email: `${suffix}@operator.invalid`, password: 'not-a-login-hash', papel: 'Superadmin', role: 'superadmin' } });
     await db.user.createMany({ data: Array.from({ length: 803 }, (_, i) => ({ nome: 'Local test', email: `${suffix}-${i}@test.invalid`, password: 'not-a-login-hash', papel: '', tenantId, role: i < 802 ? 'aluno' : 'professor', disabledAt: i >= 800 && i < 802 ? new Date() : null })) });
-    const terms = { minimumStudents: 1000, unitCents: 430, dueDay: 10, billingName: 'Local institution', billingDocument: 'TEST ONLY', billingAddress: 'Local validation', billingEmail: 'finance@test.invalid', issuerName: 'Local issuer', issuerDocument: 'TEST ONLY', issuerAddress: 'Local validation', paymentInstructions: 'Not payable — automated test' };
+    const terms = { minimumStudents: 1000, unitCents: 430, dueDay: 10, closingDay: 1, billingName: 'Local institution', billingDocument: 'TEST ONLY', billingAddress: 'Local validation', billingEmail: 'finance@test.invalid', issuerName: 'Local issuer', issuerDocument: 'TEST ONLY', issuerAddress: 'Local validation', paymentInstructions: 'Not payable — automated test' };
     const linked = await new Promise((resolve, reject) => {
       const req = { user: { id: admin.id, role: 'superadmin' }, params: { id: tenantId }, body: { planId, expectedPlanId: null, billingContract: terms, expectedContractVersion: null } };
       const res = { code: 200, status(code) { this.code = code; return this; }, json(body) { resolve({ code: this.code, body }); } };
@@ -35,6 +35,7 @@ test('PostgreSQL: contracts, invoice snapshots, concurrent issuance and manual s
     });
     assert.equal(linked.code, 200, JSON.stringify(linked.body));
     assert.equal(linked.body.billingContract.dueDay, 10);
+    assert.equal(linked.body.billingContract.closingDay, 1);
     const listed = await request('/', 'GET');
     assert.equal(listed.code, 200, JSON.stringify(listed.body));
     assert.equal(listed.body.contracts.find(c => c.tenantId === tenantId).dueDay, 10);
@@ -48,7 +49,7 @@ test('PostgreSQL: contracts, invoice snapshots, concurrent issuance and manual s
     assert.equal(invoice.billableStudents, 1000);
     assert.equal(invoice.events.length, 1);
     await db.user.createMany({ data: Array.from({ length: 300 }, (_, i) => ({ nome: 'Local excess', email: `${suffix}-excess-${i}@test.invalid`, password: 'not-a-login-hash', papel: '', tenantId, role: 'aluno' })) });
-    const extra = await request('/invoices', 'POST', { tenantId, competence: '2026-11', expectedContractVersion: 0 });
+    const extra = await request('/invoices', 'POST', { tenantId, competence: '2026-09', expectedContractVersion: 0 });
     assert.equal(extra.code, 201, JSON.stringify(extra.body));
     assert.equal(extra.body.invoice.totalCents, 473000);
     assert.equal((await request(`/contracts/${tenantId}`, 'PUT', { ...terms, unitCents: 500, expectedVersion: 0 })).code, 200);

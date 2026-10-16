@@ -4,9 +4,9 @@ Decisão atual do produto: implementar contratos e faturas internas no superadmi
 
 ## Contrato e apuração mensal
 
-Cada instituição pode ter um contrato financeiro com mínimo de alunos, preço por aluno em centavos, dia de vencimento (1 a 28), dados do contratante e do emitente e instruções de pagamento em texto. O contrato financeiro não altera automaticamente os recursos ou limites de acesso do plano vinculado.
+Cada instituição pode ter um contrato financeiro com mínimo de alunos, preço por aluno em centavos, dia de fechamento mensal (`closingDay`, de 1 a 28), dia de vencimento (`dueDay`, de 1 a 28), dados do contratante e do emitente e instruções de pagamento em texto. O contrato financeiro não altera automaticamente os recursos ou limites de acesso do plano vinculado.
 
-O vínculo de um plano por aluno ou por faixas no superadmin solicita essas condições de cobrança e salva plano e contrato juntos. A data pedida ao operador é o **dia de vencimento mensal**; a data completa da fatura será gerada na competência escolhida. Planos `FIXO` não podem ser vinculados por este fluxo enquanto a fatura da plataforma cobrar por aluno, para evitar usar um preço fixo como preço unitário. Contratos antigos que foram vinculados somente ao plano aparecem como pendentes de configuração no Financeiro; não há preenchimento inventado de CNPJ, endereço ou vencimento.
+O vínculo de um plano por aluno ou por faixas no superadmin solicita essas condições de cobrança e salva plano e contrato juntos. O campo `Plan.defaultMinimumStudents` guarda o mínimo que será sugerido e pré-preenchido no contrato; é independente de `Plan.studentLimit`, que representa o teto de acesso/cadastro. O preço de referência do catálogo também é pré-preenchido como sugestão. O operador deve confirmar explicitamente o mínimo contratado e o preço por aluno, que podem ser negociados. Nem o mínimo sugerido nem o preço viram condição contratual sem essa confirmação. A data pedida ao operador é o **dia de fechamento mensal** e o **dia de vencimento**. Planos `FIXO` não podem ser vinculados por este fluxo enquanto a fatura da plataforma cobrar por aluno, para evitar usar um preço fixo como preço unitário. Contratos antigos que foram vinculados somente ao plano aparecem como pendentes de configuração no Financeiro; não há preenchimento inventado de CNPJ, endereço ou vencimento.
 
 Desvincular um plano preserva o histórico das faturas e o cadastro do contrato, mas impede novas emissões até que um plano válido esteja novamente vinculado. A estimativa exibida para um contrato já configurado usa o mínimo e preço negociados nele; a estimativa do catálogo não substitui o valor contratual.
 
@@ -14,7 +14,9 @@ A quantidade faturável é `max(mínimo contratado, contas de alunos ativas na e
 
 Exemplo de contrato definido pelo operador: mínimo de 1.000 alunos a R$ 4,30 por aluno. Com 800 ou 1.000 contas ativas, a cobrança é R$ 4.300,00; com 1.100, R$ 4.730,00. Esses valores não são criados automaticamente como contratos ou cobranças de clientes.
 
-O superadmin escolhe a competência mensal para emitir. O vencimento usa o dia contratado dentro daquele mês. Não há agendador, envio automático de e-mail ou geração em lote. A fatura mantém os dados e preços da emissão, mesmo após alterações no contrato; repetir a emissão para a mesma instituição e competência não cria outra dívida.
+O superadmin escolhe a competência mensal para emitir. A fatura fecha na data civil formada pelo mês da competência e `closingDay`. A emissão manual só é permitida a partir dessa data, avaliada no fuso `America/Sao_Paulo`; antes disso, a API responde HTTP 409. O vencimento é calculado em relação ao fechamento: se `dueDay >= closingDay`, vence no mesmo mês da competência; se `dueDay < closingDay`, vence no mês seguinte. Por exemplo, fechamento no dia 20 e vencimento no dia 10 da competência `2026-10` produzem vencimento em `2026-11-10`; vencimento no dia 20 ou depois permanece em outubro.
+
+Não há agendador, envio automático de e-mail ou geração em lote. A fatura registra um snapshot da data e dia de fechamento, vencimento, condições comerciais e dados de cobrança usados na emissão. Alterar o contrato afeta somente faturas futuras; faturas antigas nunca são recalculadas. Contratos legados recebem `closingDay=1` como padrão, sem alterar nem recalcular faturas antigas. Repetir a emissão para a mesma instituição e competência não cria outra dívida.
 
 ## Operação e permissões
 

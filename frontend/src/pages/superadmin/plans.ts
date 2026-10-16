@@ -7,6 +7,7 @@ export interface Plan {
   priceCents: number;
   pricePoints: PricePoint[];
   studentLimit: number | null;
+  defaultMinimumStudents: number | null;
   videoAulas: boolean;
   provas: boolean;
   ia: boolean;
@@ -28,6 +29,7 @@ export interface Subscription {
 export interface BillingTerms {
   minimumStudents: number;
   unitCents: number;
+  closingDay: number;
   dueDay: number;
   billingName: string;
   billingDocument: string;

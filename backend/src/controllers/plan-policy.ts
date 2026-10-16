@@ -7,11 +7,13 @@ export function validatePlan(body: any) {
   if (typeof body.descricao !== 'string' || body.descricao.length > 1000) throw new PlanError(400, 'Informe uma descrição de até 1.000 caracteres.');
   if (!['FIXO', 'POR_ALUNO', 'FAIXAS'].includes(body.billingMode) || !Number.isInteger(body.priceCents) || body.priceCents < 0 || body.priceCents > 100000000) throw new PlanError(400, 'Informe modalidade e preço mensal válidos em centavos.');
   if (body.studentLimit !== null && (!Number.isInteger(body.studentLimit) || body.studentLimit < 1 || body.studentLimit > 1000000)) throw new PlanError(400, 'Informe limite entre 1 e 1.000.000 alunos ou sem limite.');
+  const defaultMinimumStudents = body.defaultMinimumStudents ?? null;
+  if (defaultMinimumStudents !== null && (!Number.isInteger(defaultMinimumStudents) || defaultMinimumStudents < 1 || defaultMinimumStudents > 1000000 || (body.studentLimit !== null && defaultMinimumStudents > body.studentLimit))) throw new PlanError(400, 'O mínimo sugerido deve estar entre 1 e 1.000.000 e não pode superar o limite do plano.');
   if (['videoAulas', 'provas', 'ia'].some(key => typeof body[key] !== 'boolean')) throw new PlanError(400, 'Selecione explicitamente os recursos do plano.');
   const points = body.billingMode === 'FAIXAS' ? validatePricePoints(body.pricePoints) : [];
   if (body.billingMode === 'FAIXAS' && body.priceCents !== 0) throw new PlanError(400, 'Planos por faixas devem usar preço-base zero; informe os preços nas faixas.');
   if (points.length && body.studentLimit !== null && body.studentLimit < points[0].students) throw new PlanError(400, 'O limite do plano deve alcançar a primeira referência de alunos.');
-  return { nome: body.nome.trim(), descricao: body.descricao.trim(), billingMode: body.billingMode as 'FIXO' | 'POR_ALUNO' | 'FAIXAS', priceCents: body.priceCents as number, studentLimit: body.studentLimit as number | null, videoAulas: body.videoAulas as boolean, provas: body.provas as boolean, ia: body.ia as boolean, ...(points.length ? { pricePoints: { create: points } } : {}) };
+  return { nome: body.nome.trim(), descricao: body.descricao.trim(), billingMode: body.billingMode as 'FIXO' | 'POR_ALUNO' | 'FAIXAS', priceCents: body.priceCents as number, studentLimit: body.studentLimit as number | null, defaultMinimumStudents, videoAulas: body.videoAulas as boolean, provas: body.provas as boolean, ia: body.ia as boolean, ...(points.length ? { pricePoints: { create: points } } : {}) };
 }
 
 export type PricePoint = { students: number; unitCents: number };
