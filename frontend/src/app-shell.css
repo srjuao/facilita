@@ -14,4 +14,24 @@
 @media(min-width:1500px){.app .main>section,.app .main>div:not(.workspace-topbar){max-width:1600px;width:100%;margin-left:auto;margin-right:auto}}
 @media(max-width:1050px) and (min-width:761px){.app{--workspace-width:220px}.app .side,.app .side:hover,.app .side:focus-within{padding-left:12px;padding-right:12px}.app .side .wm-full img{width:174px}.workspace-label{display:none}}
 @media(max-width:760px){.app{padding-left:0;padding-top:62px;display:block}.mobile-navigation{position:fixed;z-index:32;top:0;left:0;right:0;height:62px;padding:0 20px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;font-family:Sora,sans-serif;font-weight:600;font-size:15px;color:var(--ink)}.mobile-navigation button{display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--line);border-radius:9px;background:#fff}.app .side,.app .side:hover,.app .side:focus-within{position:fixed;top:62px;height:calc(100dvh - 62px);width:270px;transform:translateX(-100%);visibility:hidden;z-index:31;padding:22px 18px;transition:transform .2s ease,visibility .2s}.app .side.side-open{transform:translateX(0);visibility:visible}.navigation-backdrop{display:block;position:fixed;inset:62px 0 0;z-index:30;background:#10243d66;border:0;backdrop-filter:blur(2px)}.app .side-foot{display:flex}.workspace-topbar{min-height:62px;padding:16px 20px;margin-bottom:20px}.workspace-label{display:none}.app h1{font-size:25px}.app .institution-wizard{padding:24px 18px}.app .tenant-tabs{flex-wrap:wrap}.app .wizard-steps{flex-wrap:wrap}.app .wizard-steps i{min-width:8px}.app .unit-setup{padding-left:18px;padding-right:18px}}
+@media(min-width:761px){
+  .app{padding-left:76px}
+  .app .side{width:76px;padding-left:16px;padding-right:16px;transition:width .18s ease,box-shadow .18s ease}
+  .app .side:hover,.app .side:focus-within{width:var(--workspace-width);padding-left:16px;padding-right:16px;box-shadow:12px 0 32px -20px #16345966}
+  .app .side .wm-wrap{margin:0;height:45px;flex-shrink:0}
+  .app .side .wm-mini{display:grid;opacity:1;left:5px;top:0}
+  .app .side .wm-full{opacity:0;visibility:hidden;white-space:nowrap}
+  .app .side:hover .wm-mini,.app .side:focus-within .wm-mini{opacity:0}
+  .app .side:hover .wm-full,.app .side:focus-within .wm-full{opacity:1;visibility:visible}
+  .app .side .tenant{height:62px;flex-shrink:0;overflow:hidden;white-space:nowrap;opacity:0}
+  .app .side .nav button{position:relative;min-height:43px;white-space:nowrap}
+  .app .side .nav .lb{position:absolute;left:42px;opacity:0;visibility:hidden;white-space:nowrap}
+  .app .side .nav .sec{overflow:hidden;white-space:nowrap;opacity:0;min-height:14px}
+  .app .side .nav button.on::after{display:none}
+  .app .side .side-foot .txt,.app .side .side-foot button{display:none}
+  .app .side:hover .tenant,.app .side:focus-within .tenant,.app .side:hover .nav .sec,.app .side:focus-within .nav .sec{opacity:1}
+  .app .side:hover .nav .lb,.app .side:focus-within .nav .lb{position:static;opacity:1;visibility:visible}
+  .app .side:hover .side-foot .txt,.app .side:focus-within .side-foot .txt{display:block}
+  .app .side:hover .side-foot button,.app .side:focus-within .side-foot button{display:flex}
+}
 @media(prefers-reduced-motion:reduce){.app *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}

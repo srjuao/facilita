@@ -137,6 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
               aria-current={currentView === item.id ? 'page' : undefined}
               className={currentView === item.id ? 'on' : ''}
               title={item.label}
+              aria-label={item.label}
             >
               <span className="ic" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                 {item.icon}
