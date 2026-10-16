@@ -1,6 +1,9 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest, canAccessCourse } from '../middleware/auth';
+import { currentAccess } from './plan-access';
+import { PlanError } from './plan-policy';
+import { signedLesson } from './media-access';
 
 const prisma = new PrismaClient();
 
@@ -18,14 +21,18 @@ export const getCourseDetails = async (req: AuthRequest, res: Response) => {
     });
 
     if (!course) return res.status(404).json({ error: 'Curso não encontrado' });
+    const user = await currentAccess(req);
     if (!canAccessCourse(req.user, course.id)) return res.status(403).json({ error: 'Acesso negado a este curso.' });
+    const plan = user.role === 'superadmin' ? null : user.tenant?.plan;
 
     const { students, ...courseData } = course;
     const response: Record<string, unknown> = {
       ...courseData,
+      exams: plan && !plan.provas ? [] : course.exams,
       modules: course.modules.map(m => ({
         ...m,
-        lista: JSON.parse(m.lista || '[]')
+        lessons: plan && !plan.videoAulas ? [] : m.lessons.map(lesson => signedLesson(lesson, user.id)),
+        lista: plan && !plan.videoAulas ? [] : JSON.parse(m.lista || '[]')
       }))
     };
 
@@ -41,6 +48,7 @@ export const getCourseDetails = async (req: AuthRequest, res: Response) => {
     }
     return res.json(response);
   } catch (error) {
+    if (error instanceof PlanError) return res.status(error.status).json({ error: error.message });
     return res.status(500).json({ error: 'Erro ao buscar curso' });
   }
 };

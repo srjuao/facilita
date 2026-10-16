@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { AuthRequest, canAccessTenant } from '../middleware/auth';
+import { enforceStudentCapacity, lockTenant } from './plan-access';
+import { PlanError } from './plan-policy';
 
 const prisma = new PrismaClient();
 
@@ -187,6 +189,14 @@ export const updateTenantUser = async (req: AuthRequest, res: Response) => {
     if (existing.studentId && role === 'aluno' && !targetCourseId) return res.status(400).json({ error: 'Selecione um curso para manter o vínculo acadêmico deste aluno.' });
     const hash = password ? await bcrypt.hash(password, 12) : undefined;
     const updated = await prisma.$transaction(async tx => {
+      await lockTenant(tx, req.params.id);
+      const latest = await tx.user.findFirst({ where: { id: existing.id, tenantId: req.params.id } });
+      if (!latest || latest.role !== existing.role || latest.studentId !== existing.studentId || latest.courseId !== existing.courseId) throw new PlanError(409, 'O usuário foi alterado. Atualize a tela antes de salvar.');
+      if (latest.studentId) {
+        const student = await tx.student.findUnique({ where: { id: latest.studentId }, include: { course: true } });
+        if (!student || student.course.tenantId !== req.params.id) throw new PlanError(409, 'O vínculo acadêmico deste usuário pertence a outra instituição. Regularize-o antes de editar.');
+      }
+      if (role === 'aluno' && latest.role !== 'aluno' && !latest.studentId) await enforceStudentCapacity(tx, req.params.id);
       const account = await tx.user.update({
         where: { id: existing.id, tenantId: req.params.id, role: { not: 'superadmin' } },
         data: { nome: nome.trim(), email: email.trim().toLowerCase(), role, courseId: targetCourseId, papel: role === 'coord' ? 'Coordenação' : role === 'professor' ? 'Professor' : 'Aluno', ...(hash ? { password: hash } : {}) },
@@ -197,6 +207,7 @@ export const updateTenantUser = async (req: AuthRequest, res: Response) => {
     });
     return res.json(updated);
   } catch (error: any) {
+    if (error instanceof PlanError) return res.status(error.status).json({ error: error.message });
     if (error.code === 'P2002') return res.status(409).json({ error: 'Este e-mail já está em uso por outra conta.' });
     return res.status(500).json({ error: 'Não foi possível salvar o usuário.' });
   }
@@ -222,18 +233,32 @@ export const createTenantUser = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Para uma nova conta, use senha com ao menos 8 caracteres, letra, número e caractere especial.' });
     }
     const safeSelect = { id: true, nome: true, email: true, papel: true, role: true, photo: true, courseId: true } as const;
-    const user = existingUser
-      ? await prisma.user.update({
-        where: { id: existingUser.id },
+    const user = await prisma.$transaction(async tx => {
+      await lockTenant(tx, tenant.id);
+      const latest = await tx.user.findUnique({ where: { email: normalizedEmail } });
+      if (latest && (latest.role === 'superadmin' || latest.tenantId && latest.tenantId !== tenant.id)) throw new PlanError(409, 'Esta conta não pode ser vinculada a esta instituição.');
+      if (latest?.studentId) {
+        const student = await tx.student.findUnique({ where: { id: latest.studentId }, include: { course: true } });
+        if (!student || student.course.tenantId !== tenant.id) throw new PlanError(409, 'Este aluno possui vínculo acadêmico em outra instituição.');
+      }
+      // Academic students already counted through their course must not be counted twice.
+      const alreadyCounted = latest?.tenantId === tenant.id && (latest.role === 'aluno' || !!latest.studentId);
+      if (role === 'aluno' && !alreadyCounted) await enforceStudentCapacity(tx, tenant.id);
+      return latest
+      ? await tx.user.update({
+        where: { id: latest.id },
         data: { tenantId: tenant.id, role, papel: role === 'coord' ? 'Coordenação' : 'Aluno' },
         select: safeSelect
       })
-      : await prisma.user.create({ data: {
+      : await tx.user.create({ data: {
         nome: nome.trim(), email: normalizedEmail, password: await bcrypt.hash(password, 12), role,
         papel: role === 'coord' ? 'Coordenação' : 'Aluno', tenantId: tenant.id
       }, select: safeSelect });
+    });
     return res.status(201).json(user);
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof PlanError) return res.status(error.status).json({ error: error.message });
+    if (error.code === 'P2002') return res.status(409).json({ error: 'Já existe uma conta com este e-mail.' });
     return res.status(500).json({ error: 'Não foi possível vincular o usuário.' });
   }
 };

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest, canAccessCourse } from '../middleware/auth';
+import { signedLesson } from './media-access';
 
 const prisma = new PrismaClient();
 
@@ -17,7 +18,7 @@ export const getLessonsByModule = async (req: AuthRequest, res: Response) => {
       },
       include: { module: true }
     });
-    return res.json(lessons);
+    return res.json(lessons.map(lesson => signedLesson(lesson, req.user!.id)));
   } catch (error) {
     return res.status(500).json({ error: 'Erro ao buscar aulas' });
   }
@@ -34,7 +35,7 @@ export const getLessonById = async (req: AuthRequest, res: Response) => {
     if (!lesson) return res.status(404).json({ error: 'Aula não encontrada' });
     if (!canAccessCourse(req.user, lesson.module.courseId)) return res.status(403).json({ error: 'Acesso negado a esta aula.' });
 
-    return res.json(lesson);
+    return res.json({ ...signedLesson(lesson, req.user!.id), module: { ...lesson.module, lessons: lesson.module.lessons.map(item => signedLesson(item, req.user!.id)) } });
   } catch (error) {
     return res.status(500).json({ error: 'Erro ao buscar detalhes da aula' });
   }

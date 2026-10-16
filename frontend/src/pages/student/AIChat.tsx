@@ -6,6 +6,7 @@ export const AIChat: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const loadHistory = async () => {
@@ -13,7 +14,7 @@ export const AIChat: React.FC = () => {
       const res = await api.get('/chat/history');
       setMessages(res.data);
     } catch (err) {
-      console.error('Erro ao carregar histórico', err);
+      setError('Não foi possível carregar o histórico do chat.');
     }
   };
 
@@ -29,7 +30,7 @@ export const AIChat: React.FC = () => {
     const text = textToSend || input;
     if (!text.trim() || loading) return;
 
-    setInput('');
+    setInput(''); setError('');
     setLoading(true);
 
     // Adiciona otimista
@@ -39,8 +40,9 @@ export const AIChat: React.FC = () => {
     try {
       const res = await api.post('/chat/send', { content: text });
       setMessages(prev => [...prev.filter(m => m.id !== tempMsg.id), res.data.userMessage, res.data.aiMessage]);
-    } catch (err) {
-      console.error('Erro ao enviar mensagem', err);
+    } catch (err: any) {
+      setMessages(prev => prev.filter(message => message.id !== tempMsg.id)); setInput(text);
+      setError(err.response?.data?.error || 'Não foi possível enviar a mensagem. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -51,18 +53,19 @@ export const AIChat: React.FC = () => {
       <div className="page-head">
         <div>
           <h1>IA Tira-Dúvidas</h1>
-          <p>Responde com base nas aulas do seu período e indica em qual aula o assunto foi explicado.</p>
+          <p>O acesso depende do plano contratado. Respostas reais exigem a integração de um provedor de IA.</p>
         </div>
       </div>
 
+      {error && <p role="alert" className="inline-form-error">{error}</p>}
       <div className="card" style={{ marginTop: '20px', minHeight: '500px', display: 'flex', flexDirection: 'column' }}>
         <div className="chat" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px' }}>
           {messages.map((msg) => (
             <div
               key={msg.id}
               className={`msg ${msg.role === 'ai' ? 'ai' : 'me'}`}
-              dangerouslySetInnerHTML={{ __html: msg.content }}
-            />
+              style={{ whiteSpace: 'pre-wrap' }}
+            >{msg.content}</div>
           ))}
           {loading && (
             <div className="msg ai">

@@ -29,6 +29,7 @@ export interface Course {
 }
 
 export interface Tenant {
+  plan?: { id: string; nome: string; videoAulas: boolean; provas: boolean; ia: boolean; studentLimit: number | null } | null;
   _count?: { users: number };
   id: string;
   nome: string;

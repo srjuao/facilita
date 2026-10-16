@@ -55,6 +55,28 @@ model Tenant {
   primaryColor String @default("#2f7dd1")
   courses   Course[]
   users     User[]
+  planId    String?
+  plan      Plan? @relation(fields: [planId], references: [id], onDelete: Restrict)
+}
+
+enum BillingMode {
+  FIXO
+  POR_ALUNO
+}
+
+model Plan {
+  id           String @id @default(cuid())
+  nome         String
+  descricao    String @default("")
+  billingMode  BillingMode
+  priceCents   Int
+  studentLimit Int?
+  videoAulas   Boolean
+  provas       Boolean
+  ia           Boolean
+  ativo        Boolean @default(true)
+  createdAt    DateTime @default(now())
+  tenants      Tenant[]
 }
 
 model Course {

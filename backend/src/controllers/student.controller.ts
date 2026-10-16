@@ -2,6 +2,8 @@ import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { AuthRequest, canAccessCourse } from '../middleware/auth';
+import { enforceStudentCapacity } from './plan-access';
+import { PlanError } from './plan-policy';
 
 const prisma = new PrismaClient();
 const validPassword = (value: string) => value.length >= 8 && /[A-Za-z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9]/.test(value);
@@ -17,12 +19,19 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
     const duplicateRegistration = await prisma.student.findFirst({ where: { courseId: req.user.courseId, sub: matricula.trim() } });
     if (duplicateRegistration) return res.status(409).json({ error: 'Esta matrícula já está cadastrada neste curso.' });
     const result = await prisma.$transaction(async tx => {
+      const account = await tx.user.findUnique({ where: { id: req.user!.id }, include: { course: true } });
+      if (!account?.tenantId || !account.courseId || !['coord', 'professor'].includes(account.role) || account.tenantId !== req.user!.tenantId || account.courseId !== req.user!.courseId || account.course?.tenantId !== account.tenantId) throw new PlanError(403, 'Seu vínculo acadêmico mudou. Entre novamente.');
+      await enforceStudentCapacity(tx, account.tenantId);
       const student = await tx.student.create({ data: { nome: nome.trim(), sub: matricula.trim(), progresso: 0, nota: 0, tempo: 0, ultimo: 0, risco: 'baixo', atividade: '[]', weeks: '[]', notas: '{}', tempos: '{}', courseId: req.user!.courseId! } });
       await tx.user.create({ data: { nome: nome.trim(), email: normalizedEmail, password: await bcrypt.hash(password, 12), papel: 'Aluno', role: 'aluno', tenantId: req.user!.tenantId!, courseId: req.user!.courseId!, studentId: student.id } });
       return student;
     });
     return res.status(201).json(result);
-  } catch { return res.status(500).json({ error: 'Não foi possível cadastrar o aluno.' }); }
+  } catch (error: any) {
+    if (error instanceof PlanError) return res.status(error.status).json({ error: error.message });
+    if (error.code === 'P2002') return res.status(409).json({ error: 'Já existe uma conta com este e-mail.' });
+    return res.status(500).json({ error: 'Não foi possível cadastrar o aluno.' });
+  }
 };
 
 export const getStudents = async (req: AuthRequest, res: Response) => {

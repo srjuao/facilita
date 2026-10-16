@@ -5,6 +5,7 @@ import { generateToken, AuthRequest } from '../middleware/auth';
 import { createChangePasswordHandler } from './change-password';
 
 const prisma = new PrismaClient();
+const publicPlan = { select: { id: true, nome: true, videoAulas: true, provas: true, ia: true, studentLimit: true } } as const;
 
 export const changePassword = createChangePasswordHandler({
   find: id => prisma.user.findUnique({ where: { id }, select: { id: true, role: true, password: true } }),
@@ -24,7 +25,7 @@ export const login = async (req: Request, res: Response) => {
 
     const user = await prisma.user.findUnique({
       where: { email: email.trim().toLowerCase() },
-      include: { tenant: true, course: true, student: true }
+      include: { tenant: { include: { plan: publicPlan } }, course: true, student: true }
     });
 
     if (!user) {
@@ -78,7 +79,7 @@ export const getMe = async (req: AuthRequest, res: Response) => {
 
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      include: { tenant: true, course: true, student: true }
+      include: { tenant: { include: { plan: publicPlan } }, course: true, student: true }
     });
 
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });

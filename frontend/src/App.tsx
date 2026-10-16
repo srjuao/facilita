@@ -35,6 +35,7 @@ import { SuperAdminTenants } from './pages/superadmin/SuperAdminTenants';
 import { SuperAdminCourses } from './pages/superadmin/SuperAdminCourses';
 import { SuperAdminFinancial } from './pages/superadmin/SuperAdminFinancial';
 import { SuperAdminLogin } from './pages/superadmin/SuperAdminLogin';
+import { SuperAdminPlans } from './pages/superadmin/SuperAdminPlans';
 import { SuperAdminLeads } from './pages/superadmin/SuperAdminLeads';
 import { SuperAdminAccount } from './pages/superadmin/SuperAdminAccount';
 
@@ -63,6 +64,8 @@ export const AppContent: React.FC = () => {
     : currentView;
 
   const renderView = () => {
+    const plan = user.role !== 'superadmin' ? user.tenant?.plan : null;
+    if ((activeView === 'al-ia' && plan?.ia === false) || (['al-provas', 'co-provas'].includes(activeView) && plan?.provas === false) || (activeView === 'al-aula' && plan?.videoAulas === false)) return <section className="unit-setup"><div className="card"><h1>Recurso não incluído no plano</h1><p>Consulte a coordenação da instituição sobre os recursos contratados.</p><button className="ghost" onClick={() => setCurrentView('default')}>Voltar ao início</button></div></section>;
     const records: Record<string, { title: string; kind: 'modules' | 'exams' | 'alerts' | 'live' | 'empty' }> = {
       'co-subs': { title: 'Turmas', kind: 'empty' },
       'co-alertas': { title: 'Alertas', kind: 'alerts' },
@@ -108,7 +111,8 @@ export const AppContent: React.FC = () => {
       case 'sa-overview': return <SuperAdminOverview onNavigate={setCurrentView} />;
       case 'sa-tenants': return <SuperAdminTenants />;
       case 'sa-courses': return <SuperAdminCourses />;
-      case 'sa-fin': return <SuperAdminFinancial />;
+      case 'sa-fin': return <SuperAdminFinancial onNavigate={setCurrentView} />;
+      case 'sa-plans': return <SuperAdminPlans />;
       case 'sa-leads': return <SuperAdminLeads />;
       case 'sa-account': return <SuperAdminAccount />;
 

@@ -39,6 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
       { id: 'sa-leads', label: 'Leads e contatos', icon: <MessageSquare size={18} /> },
       { id: 'sa-tenants', label: 'Faculdades', icon: <Building2 size={18} /> },
       { id: 'sa-courses', label: 'Cursos', icon: <BookOpen size={18} /> },
+      { id: 'sa-plans', label: 'Planos e assinaturas', icon: <Layers size={18} /> },
       { id: 'sa-fin', label: 'Financeiro', icon: <DollarSign size={18} /> },
       { id: 'sa-account', label: 'Minha conta', icon: <User size={18} /> },
       { sec: 'Instituição selecionada' },
@@ -75,7 +76,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     ]
   };
 
-  const navItems = NAVS[role] || NAVS.aluno;
+  const plan = role !== 'superadmin' ? user.tenant?.plan : null;
+  const navItems = (NAVS[role] || NAVS.aluno).filter(item => !((item.id === 'al-ia' && plan?.ia === false) || (['al-provas', 'co-provas'].includes(item.id || '') && plan?.provas === false)));
   const tenantName = user.tenant?.nome || 'UNIFAN';
   const tenantLogo = user.role !== 'superadmin' ? user.tenant?.logoUrl : '';
 

@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
+import { signedLesson } from './media-access';
 const prisma = new PrismaClient();
 
 // Re-read assignments so stale JWTs cannot publish in a formerly assigned course.
@@ -32,6 +33,6 @@ export const createLesson = async (req: AuthRequest, res: Response) => {
       await tx.course.update({ where: { id: user.courseId! }, data: { aulas: { increment: 1 } } });
       return created;
     });
-    return res.status(201).json(lesson);
+    return res.status(201).json(signedLesson(lesson, user.id));
   } catch { return res.status(500).json({ error: 'Não foi possível salvar a aula.' }); }
 };
