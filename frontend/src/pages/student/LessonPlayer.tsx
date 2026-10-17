@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, CheckCircle2, Download, FileText, LockKeyhole, Play } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Download, FileText, LockKeyhole, Maximize2, Minimize2, Play } from 'lucide-react';
 import { TopBar } from '../../components/TopBar';
 import api from '../../api/client';
 import './LessonPlayer.css';
@@ -17,7 +17,41 @@ export const LessonPlayer: React.FC<{ lessonId?: string; onBack: () => void; onO
   const [completing, setCompleting] = useState(false);
   const [downloadingId, setDownloadingId] = useState('');
   const [refresh, setRefresh] = useState(0);
+  const videoFrame = useRef<HTMLDivElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const [expanded, setExpanded] = useState(false);
   useEffect(() => { setSelectedId(lessonId); }, [lessonId]);
+  useEffect(() => {
+    const syncFullscreen = () => setExpanded(document.fullscreenElement === videoFrame.current);
+    const onEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !document.fullscreenElement) setExpanded(false); };
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    document.addEventListener('keydown', onEscape);
+    return () => { document.removeEventListener('fullscreenchange', syncFullscreen); document.removeEventListener('keydown', onEscape); };
+  }, []);
+  useEffect(() => {
+    if (!expanded || document.fullscreenElement) return;
+    const oldOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    videoFrame.current?.querySelector<HTMLButtonElement>('.lesson-expand')?.focus();
+    return () => { document.body.style.overflow = oldOverflow; returnFocus.current?.focus(); };
+  }, [expanded]);
+  const containExpandedFocus = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!expanded || document.fullscreenElement || event.key !== 'Tab') return;
+    const elements = Array.from(videoFrame.current?.querySelectorAll<HTMLElement>('video[controls], iframe, .lesson-expand') || []);
+    const first = elements[0], last = elements[elements.length - 1];
+    if (!first || !last) return;
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  };
+  const toggleExpanded = async () => {
+    if (document.fullscreenElement === videoFrame.current) { await document.exitFullscreen(); return; }
+    if (expanded) { setExpanded(false); return; }
+    returnFocus.current = document.activeElement as HTMLElement | null;
+    try {
+      if (!videoFrame.current?.requestFullscreen) throw new Error('Fullscreen unavailable');
+      await videoFrame.current.requestFullscreen();
+    } catch { setExpanded(true); }
+  };
   useEffect(() => {
     let active = true; setLesson(null); setVideoError(false); setActionError('');
     if (!selectedId) { setStatus('ready'); return () => { active = false; }; }
@@ -51,7 +85,7 @@ export const LessonPlayer: React.FC<{ lessonId?: string; onBack: () => void; onO
   return <div><TopBar currentPage="Videoaula" /><section className="unit-setup lesson-journey"><button className="btn lesson-back" onClick={onBack}><ArrowLeft size={16} /> Voltar à matéria</button>
     {status === 'loading' ? <p role="status">Carregando aula…</p> : status === 'error' ? <section className="card" role="alert"><h2>Não foi possível carregar a aula</h2><p>A aula pode estar indisponível ou ainda bloqueada na sequência.</p><button className="btn" onClick={() => setRefresh(value => value + 1)}>Tentar novamente</button></section> : !lesson ? <section className="card"><h2>Nenhuma aula selecionada</h2><p>Selecione uma aula publicada para começar.</p></section> : <>
       <div className="lesson-heading"><p className="eyebrow">{lesson.module?.nome || 'Matéria'} · Aula {Math.max(1, playlist.findIndex(item => item.id === lesson.id) + 1)} de {playlist.length}</p><h1>{lesson.titulo}</h1><p>{[lesson.prof, lesson.duracao].filter(Boolean).join(' · ')}</p></div>
-      <div className="lesson-layout"><main className="lesson-main"><div className="lesson-video">{lesson.locked ? <div className="lesson-video-empty"><LockKeyhole size={35} /><p>Conclua a aula anterior para liberar este conteúdo.</p></div> : lesson.videoUrl ? embedUrl ? <iframe src={embedUrl} title={lesson.titulo} allowFullScreen referrerPolicy="no-referrer" /> : <video key={lesson.videoUrl} src={lesson.videoUrl} controls preload="metadata" onError={() => setVideoError(true)} /> : <div className="lesson-video-empty"><Play size={35} /><p>Esta aula ainda não possui vídeo disponível.</p></div>}</div>{videoError && <p role="alert" className="inline-form-error">O vídeo não pôde ser reproduzido. O link pode ter expirado.</p>}
+      <div className="lesson-layout"><main className="lesson-main"><div ref={videoFrame} className={`lesson-video${expanded ? ' is-expanded' : ''}`} onKeyDown={containExpandedFocus}>{lesson.locked ? <div className="lesson-video-empty"><LockKeyhole size={35} /><p>Conclua a aula anterior para liberar este conteúdo.</p></div> : lesson.videoUrl ? embedUrl ? <iframe src={embedUrl} title={lesson.titulo} allow="fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer" /> : <video key={lesson.videoUrl} src={lesson.videoUrl} controls playsInline preload="metadata" onError={() => setVideoError(true)} /> : <div className="lesson-video-empty"><Play size={35} /><p>Esta aula ainda não possui vídeo disponível.</p></div>}{lesson.videoUrl && !lesson.locked && <button type="button" className="lesson-expand" onClick={() => void toggleExpanded()} aria-label={expanded ? 'Sair da tela cheia' : 'Expandir vídeo em tela cheia'} title={expanded ? 'Sair da tela cheia' : 'Expandir vídeo'}>{expanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}<span>{expanded ? 'Reduzir' : 'Expandir'}</span></button>}</div>{videoError && <p role="alert" className="inline-form-error">O vídeo não pôde ser reproduzido. O link pode ter expirado.</p>}
         <div className="lesson-main-actions"><div>{lesson.completed ? <span className="lesson-complete-label"><CheckCircle2 size={17} /> Aula concluída</span> : <span>Depois de estudar, registre a conclusão para liberar a próxima aula.</span>}</div>{!lesson.completed && !lesson.locked && <button className="btn primary" disabled={completing} onClick={() => void complete()}>{completing ? 'Concluindo…' : 'Marcar como concluída'}</button>}{lesson.completed && next && <button className="btn primary" onClick={() => setSelectedId(next.id)}>Próxima aula <ArrowRight size={16} /></button>}</div>
         {actionError && <p className="inline-form-error" role="alert">{actionError}</p>}
         {lesson.desc && <section className="lesson-notes"><h2>Sobre esta aula</h2><p>{lesson.desc}</p></section>}
