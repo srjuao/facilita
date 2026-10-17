@@ -111,20 +111,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
       { id: 'co-alunos', label: 'Alunos', icon: <Users size={18} /> },
     ],
     aluno: [
+      { sec: 'Meu aprendizado' },
       { id: 'al-inicio', label: 'Início', icon: <Home size={18} /> },
-      { id: 'al-live', label: 'Aulas ao vivo', icon: <Radio size={18} /> },
       { id: 'al-periodos', label: 'Períodos', icon: <Calendar size={18} /> },
       { id: 'al-materias', label: 'Matérias', icon: <BookOpen size={18} /> },
       { id: 'al-plano', label: 'Plano de estudos', icon: <Target size={18} /> },
       { id: 'al-flash', label: 'Flash Cards', icon: <Layers size={18} /> },
       { id: 'al-ia', label: 'IA Tira-Dúvidas', icon: <MessageSquare size={18} /> },
       { id: 'al-provas', label: 'Provas', icon: <FileText size={18} /> },
-      { id: 'al-perfil', label: 'Perfil', icon: <User size={18} /> },
+      { id: 'al-live', label: 'Aulas ao vivo', icon: <Radio size={18} /> },
+      { sec: 'Minha comunidade' },
       { id: 'al-notices', label: 'Avisos', icon: <FileText size={18} /> },
       { id: 'al-classes', label: 'Minha turma', icon: <Users size={18} /> },
       { id: 'al-chat', label: 'Chat interno', icon: <MessageSquare size={18} /> },
+      { sec: 'Serviços e conta' },
       { id: 'al-store', label: 'Cursos da instituição', icon: <ShoppingBag size={18} /> },
       { id: 'al-finance', label: 'Minhas mensalidades', icon: <DollarSign size={18} /> },
+      { id: 'al-perfil', label: 'Perfil', icon: <User size={18} /> },
     ]
   };
 

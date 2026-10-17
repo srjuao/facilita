@@ -88,8 +88,17 @@
   .app .side{padding-top:12px;padding-bottom:10px}
   .app .side .tenant,.app .side:hover .tenant,.app .side:has(:focus-visible) .tenant{height:30px;min-height:30px;padding-top:3px;padding-bottom:4px}
   .app .side:not(:hover):not(:has(:focus-visible)) .tenant{height:30px;min-height:30px;padding:3px 10px 4px}
-  .app .side .nav .sec,.app .side:hover .nav .sec,.app .side:has(:focus-visible) .nav .sec{display:none}
+  .app .side .nav .sec,.app .side:hover .nav .sec,.app .side:has(:focus-visible) .nav .sec{display:block}
   .app .side .nav button,.app .side:hover .nav button,.app .side:has(:focus-visible) .nav button{min-height:30px;padding-top:3px;padding-bottom:3px}
+}
+
+/* Student destinations are grouped like open folders, never collapsed. */
+.app .side-aluno .nav .sec{border-top:1px solid #ffffff24;padding:4px 4px 0;font-size:9px;font-weight:800;letter-spacing:.13em;color:#a7aaa9}
+@media(min-width:761px){
+  .app .side-aluno .nav .sec,.app .side-aluno:hover .nav .sec,.app .side-aluno:has(:focus-visible) .nav .sec{height:18px;min-height:18px;margin:4px 9px 1px}
+}
+@media(max-width:760px){
+  .app .side-aluno .nav .sec{display:block;margin:16px 10px 5px;padding:9px 4px 0}
 }
 
 .login-brand-loading{min-height:100dvh;display:flex;align-items:center;justify-content:center;gap:12px;background:#f7f9f9;color:#53646a;font-size:14px;font-weight:600}
