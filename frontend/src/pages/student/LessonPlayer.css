@@ -1,0 +1,24 @@
+.lesson-journey{max-width:1500px;margin:auto}.lesson-back{display:inline-flex;align-items:center;gap:7px;margin-bottom:16px}
+.lesson-heading{margin:0 0 20px}.lesson-heading h1{margin:4px 0 5px}.lesson-heading>p:last-child{margin:0;color:var(--muted);font-size:13px}
+.lesson-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,330px);gap:18px;align-items:start}
+.lesson-main{min-width:0;background:var(--paper);border:1px solid var(--line);border-radius:17px;overflow:hidden}
+.lesson-video{aspect-ratio:16/9;background:#121a28;color:#fff;display:grid;place-items:center;overflow:hidden}
+.lesson-video>iframe,.lesson-video>video{width:100%;height:100%;border:0;object-fit:contain}
+.lesson-video-empty{display:grid;place-items:center;gap:10px;padding:25px;text-align:center;color:#dde3ee}.lesson-video-empty p{margin:0}
+.lesson-main-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.lesson-main-actions>div{font-size:12px;color:var(--muted)}.lesson-main-actions button{display:inline-flex;align-items:center;gap:7px;flex:none}
+.lesson-complete-label{display:inline-flex;align-items:center;gap:6px;color:#218459;font-weight:800}
+.lesson-notes,.lesson-resources{padding:20px;border-bottom:1px solid var(--line)}.lesson-notes h2,.lesson-resources h2{font-size:17px;margin:0 0 8px}.lesson-notes p{white-space:pre-wrap;overflow-wrap:anywhere}.lesson-resources>p{font-size:12px;color:var(--muted);margin:0 0 15px}
+.lesson-resource{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;margin-top:7px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--paper-2);color:var(--ink);text-align:left;text-decoration:none;cursor:pointer;font:inherit}
+.lesson-resource:hover{border-color:var(--accent)}.lesson-resource span{flex:1;min-width:0;overflow-wrap:anywhere}.lesson-resource svg:last-child{color:var(--accent-ink);flex:none}
+.lesson-playlist{position:sticky;top:20px;background:var(--paper);border:1px solid var(--line);border-radius:17px;overflow:hidden}
+.lesson-playlist-head{display:flex;justify-content:space-between;gap:10px;padding:17px 17px 12px}.lesson-playlist-head strong{font-size:15px}.lesson-playlist-head span{font-size:12px;color:var(--muted)}
+.lesson-playlist ol{list-style:none;margin:0;padding:0 8px 8px;max-height:min(62vh,640px);overflow:auto;scrollbar-width:none}.lesson-playlist ol::-webkit-scrollbar{display:none}
+.lesson-playlist li{margin:0}.lesson-playlist li button,.lesson-playlist-final{display:flex;align-items:center;gap:11px;width:100%;padding:12px 9px;border:0;border-radius:9px;text-align:left;background:transparent;color:var(--ink);font:inherit;cursor:pointer}
+.lesson-playlist li button:hover:not(:disabled){background:var(--paper-2)}.lesson-playlist li button.current{background:var(--accent-soft);color:var(--accent-ink)}.lesson-playlist li button:disabled:not(.current){color:var(--muted);cursor:not-allowed}
+.lesson-playlist-icon{display:grid;place-items:center;width:30px;height:30px;flex:none;border-radius:8px;background:var(--paper-2);font-size:11px;font-weight:800}.lesson-playlist li button.current .lesson-playlist-icon{background:var(--accent);color:white}
+.lesson-playlist li button>span:last-child,.lesson-playlist-final>span{min-width:0;flex:1}.lesson-playlist strong,.lesson-playlist small{display:block;overflow-wrap:anywhere}.lesson-playlist li strong{font-size:12px;line-height:1.35}.lesson-playlist small{font-size:10px;margin-top:2px;color:var(--muted)}
+.lesson-playlist-final{border-radius:0;border-top:1px solid var(--line);padding:16px;color:var(--accent-ink)}.lesson-playlist-final:disabled{color:var(--muted);cursor:not-allowed}.lesson-playlist-final strong{font-size:12px}
+.lesson-playlist button:focus-visible,.lesson-resource:focus-visible{outline:3px solid var(--accent);outline-offset:-2px}
+@media(max-width:900px){.lesson-layout{grid-template-columns:1fr}.lesson-playlist{position:static}.lesson-playlist ol{max-height:none}}
+@media(max-width:550px){.lesson-main-actions{flex-direction:column;align-items:stretch}.lesson-main-actions button{justify-content:center}.lesson-notes,.lesson-resources{padding:16px}}

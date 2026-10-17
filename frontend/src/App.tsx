@@ -50,6 +50,7 @@ export const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<string>('default');
   const [selectedLessonId, setSelectedLessonId] = useState<string>('');
   const [selectedPaidCourseId, setSelectedPaidCourseId] = useState('');
+  const [selectedFinalExamId, setSelectedFinalExamId] = useState('');
   const [lessonReturnView, setLessonReturnView] = useState('al-materias');
 
   if (loading) {
@@ -66,6 +67,10 @@ export const AppContent: React.FC = () => {
     setSelectedLessonId(lessonId);
     setCurrentView('al-aula');
   };
+  const handleOpenFinalExam = (examId: string) => {
+    setSelectedFinalExamId(examId);
+    setCurrentView(activeView === 'al-paid-course' || activeView === 'al-aula' && lessonReturnView === 'al-paid-course' ? 'al-course-exams' : 'al-provas');
+  };
 
   // Roteamento padrão por papel caso não haja view selecionada
   const activeView = currentView === 'default'
@@ -77,14 +82,14 @@ export const AppContent: React.FC = () => {
     if (activeView === 'co-live' || activeView === 'al-live') return <Suspense fallback={<p role="status" style={{ padding: 24 }}>Abrindo aulas ao vivo…</p>}><CoordLive /></Suspense>;
     if (activeView === 'co-finance' || activeView === 'al-finance') return <InstitutionFinancial />;
     if (activeView === 'co-sales' || activeView === 'al-store') return <PaidCourses onOpenCourse={courseId => { setSelectedPaidCourseId(courseId); setCurrentView('al-paid-course'); }} />;
-    if (activeView === 'al-paid-course') return <CourseRecords title="Conteúdo do curso" kind="modules" courseId={selectedPaidCourseId} onOpenLesson={handleOpenLesson} onShowCatalog={() => setCurrentView('al-store')} onOpenExams={user.tenant?.plan?.provas === false ? undefined : () => setCurrentView('al-course-exams')} />;
-    if (activeView === 'al-course-exams') return <Assessments courseId={selectedPaidCourseId} />;
+    if (activeView === 'al-paid-course') return <CourseRecords title="Conteúdo do curso" kind="modules" courseId={selectedPaidCourseId} onOpenLesson={handleOpenLesson} onOpenExam={handleOpenFinalExam} onShowCatalog={() => setCurrentView('al-store')} onOpenExams={user.tenant?.plan?.provas === false ? undefined : () => setCurrentView('al-course-exams')} />;
+    if (activeView === 'al-course-exams') return <Assessments courseId={selectedPaidCourseId} initialExamId={selectedFinalExamId} />;
     const sections = { 'co-notices': 'notices', 'co-subs': 'classes', 'co-team': 'team', 'co-chat': 'chat', 'al-notices': 'notices', 'al-classes': 'classes', 'al-chat': 'chat' } as const;
     if (activeView in sections) return <InstitutionWorkspace section={sections[activeView as keyof typeof sections]} />;
     if (['professor', 'staff'].includes(user.role) && ((activeView === 'co-gestao' && !user.permissions?.includes('content.manage')) || (activeView === 'co-alunos' && !user.permissions?.includes('students.manage')))) return <section className="unit-setup"><div className="card"><h1>Acesso não autorizado</h1><p>A coordenação ainda não liberou esta função para sua conta.</p></div></section>;
     const plan = user.role !== 'superadmin' ? user.tenant?.plan : null;
     if ((activeView === 'al-ia' && plan?.ia === false) || (['al-provas', 'co-provas'].includes(activeView) && plan?.provas === false) || (activeView === 'al-aula' && plan?.videoAulas === false)) return <section className="unit-setup"><div className="card"><h1>Recurso não incluído no plano</h1><p>Consulte a coordenação da instituição sobre os recursos contratados.</p><button className="ghost" onClick={() => setCurrentView('default')}>Voltar ao início</button></div></section>;
-    if (['al-provas', 'co-provas'].includes(activeView)) return <Assessments />;
+    if (['al-provas', 'co-provas'].includes(activeView)) return <Assessments initialExamId={activeView === 'al-provas' ? selectedFinalExamId : undefined} />;
     const records: Record<string, { title: string; kind: 'modules' | 'exams' | 'alerts' | 'live' | 'empty' }> = {
       'co-subs': { title: 'Turmas', kind: 'empty' },
       'co-alertas': { title: 'Alertas', kind: 'alerts' },
@@ -98,13 +103,13 @@ export const AppContent: React.FC = () => {
       'al-flash': { title: 'Flashcards', kind: 'empty' },
       'al-plano': { title: 'Plano de estudos', kind: 'empty' }
     };
-    if (records[activeView]) return <CourseRecords {...records[activeView]} onOpenLesson={user.role === 'aluno' ? handleOpenLesson : undefined} onShowCatalog={user.role === 'aluno' ? () => setCurrentView('al-store') : undefined} />;
+    if (records[activeView]) return <CourseRecords {...records[activeView]} onOpenLesson={user.role === 'aluno' ? handleOpenLesson : undefined} onOpenExam={user.role === 'aluno' ? handleOpenFinalExam : undefined} onShowCatalog={user.role === 'aluno' ? () => setCurrentView('al-store') : undefined} />;
     switch (activeView) {
       // Aluno
       case 'al-inicio': return <StudentHome onNavigate={setCurrentView} />;
       case 'al-periodos': return <StudentPeriods onNavigateView={setCurrentView} onNavigateLesson={handleOpenLesson} />;
       case 'al-materias': return <StudentSubjects onOpenLesson={handleOpenLesson} />;
-      case 'al-aula': return <LessonPlayer lessonId={selectedLessonId} onBack={() => setCurrentView(lessonReturnView)} />;
+      case 'al-aula': return <LessonPlayer lessonId={selectedLessonId} onBack={() => setCurrentView(lessonReturnView)} onOpenExam={handleOpenFinalExam} />;
       case 'al-plano': return <StudentStudyPlan />;
       case 'al-flash': return <StudentFlashcards />;
       case 'al-ia': return <AIChat />;

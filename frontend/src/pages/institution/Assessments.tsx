@@ -22,7 +22,7 @@ function Empty({ title, children }: { title: string; children: React.ReactNode }
   return <div className="as-empty"><ClipboardList size={28} aria-hidden="true" /><h2>{title}</h2><div>{children}</div></div>;
 }
 
-export function Assessments({ courseId }: { courseId?: string }) {
+export function Assessments({ courseId, initialExamId }: { courseId?: string; initialExamId?: string }) {
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState('');
@@ -30,13 +30,13 @@ export function Assessments({ courseId }: { courseId?: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
-  const [selectedExam, setSelectedExam] = useState<string | null>(null);
+  const [selectedExam, setSelectedExam] = useState<string | null>(initialExamId || null);
   const [resultsRefresh, setResultsRefresh] = useState(0);
   const student = user?.role === 'aluno';
   const canManage = user?.role === 'coord' || (user?.role === 'professor' && permissions.includes('exams.manage'));
   const planBlocked = user?.tenant?.plan?.provas === false;
   useEffect(() => {
-    const controller = new AbortController(); setLoading(true); setError(''); setSelectedExam(null);
+    const controller = new AbortController(); setLoading(true); setError(''); setSelectedExam(initialExamId || null);
     async function load() {
       if (planBlocked) { setLoading(false); return; }
       try {
@@ -56,7 +56,7 @@ export function Assessments({ courseId }: { courseId?: string }) {
       finally { if (!controller.signal.aborted) setLoading(false); }
     }
     void load(); return () => controller.abort();
-  }, [courseId, user?.id, user?.courseId, user?.course?.id, user?.course?.nome, user?.role, planBlocked, retry]);
+  }, [courseId, initialExamId, user?.id, user?.courseId, user?.course?.id, user?.course?.nome, user?.role, planBlocked, retry]);
   return <><TopBar currentPage="Provas e atividades" /><div className="assessments">
     <header className="as-heading"><div><p className="eyebrow">APRENDIZAGEM E AVALIAÇÃO</p><h1>{student ? 'Mostre o que aprendeu.' : 'Provas e atividades.'}</h1><p>{student ? 'Responda às avaliações publicadas e acompanhe suas notas.' : 'Prepare questões, publique avaliações e acompanhe os resultados reais dos alunos.'}</p></div><ClipboardList size={30} aria-hidden="true" /></header>
     {planBlocked ? <Empty title="Avaliações não incluídas"><p>O plano da instituição não permite provas. Fale com a coordenação.</p></Empty> : loading ? <p role="status">Carregando acesso e cursos…</p> : error ? <Empty title="Não foi possível abrir as avaliações"><p role="alert">{error}</p><button className="btn" onClick={() => setRetry(value => value + 1)}>Tentar novamente</button></Empty> : !courses.length ? <Empty title="Nenhum curso disponível"><p>{student ? 'Sua conta precisa estar vinculada a um curso para acessar as avaliações.' : 'Cadastre um curso e vincule a equipe antes de preparar as avaliações.'}</p></Empty> : <>

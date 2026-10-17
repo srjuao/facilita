@@ -1,0 +1,32 @@
+.subject-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:18px}
+.subject-card{display:flex;flex-direction:column;overflow:hidden;text-align:left;padding:0;border:1px solid var(--line);border-radius:18px;background:var(--paper);color:var(--ink);cursor:pointer;min-width:0;transition:transform .16s,box-shadow .16s,border-color .16s}
+.subject-card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 16px 36px -28px #15253caa}
+.subject-card:focus-visible,.subject-lesson-list button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.subject-card-cover{height:145px;position:relative;display:grid;place-items:center;color:#ffffffdd;overflow:hidden}
+.subject-card-cover img{width:100%;height:100%;object-fit:cover}
+.subject-card-cover>span{position:absolute;bottom:11px;left:12px;padding:5px 9px;background:#101a27b8;border-radius:99px;color:#fff;font-size:11px;font-weight:800}
+.subject-card-copy{display:flex;flex-direction:column;flex:1;padding:17px 18px 18px}
+.subject-card-copy>small{color:var(--accent-ink);font-size:10px;letter-spacing:.13em;font-weight:800}
+.subject-card-copy h2{font-size:18px;margin:5px 0;overflow-wrap:anywhere}
+.subject-card-copy p{font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.45;overflow-wrap:anywhere}
+.subject-progress{height:5px;margin-top:auto;background:var(--line);border-radius:99px;overflow:hidden}
+.subject-progress>span{display:block;height:100%;background:var(--accent);border-radius:inherit}
+.subject-card-action{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:13px;color:var(--accent-ink);font-size:12px;font-weight:800}
+.subject-detail{display:grid;grid-template-columns:minmax(180px,.38fr) minmax(0,1fr);gap:18px;align-items:start}
+.subject-detail-cover{min-height:240px;display:grid;place-items:center;border-radius:17px;overflow:hidden;background:var(--accent);color:white}
+.subject-detail-cover img{width:100%;height:100%;min-height:240px;max-height:360px;object-fit:cover}
+.subject-detail-body{background:var(--paper);border:1px solid var(--line);border-radius:17px;padding:22px;min-width:0}
+.subject-detail-heading{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:18px}
+.subject-detail-heading h2{font-size:20px;margin:4px 0 0}.subject-detail-heading>span{font-size:12px;color:var(--muted)}
+.subject-lesson-list{list-style:none;padding:0;margin:0;display:grid;gap:7px}
+.subject-lesson-list li{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:11px;min-width:0}
+.subject-lesson-list li.locked{background:var(--paper-2);color:var(--muted)}
+.subject-lesson-list li.available{border-color:var(--accent)}
+.subject-lesson-index{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:9px;background:var(--accent-soft);color:var(--accent-ink);font-size:12px;font-weight:800}
+.subject-lesson-list li>div{min-width:0;flex:1}.subject-lesson-list strong{display:block;font-size:13px;overflow-wrap:anywhere}.subject-lesson-list small{display:block;margin-top:2px;font-size:11px;color:var(--muted)}
+.subject-lesson-list button{display:inline-flex;gap:6px;align-items:center;flex:none}
+.subject-final{display:flex;align-items:center;gap:12px;margin-top:15px;padding:14px;border-radius:11px;background:var(--accent-soft);color:var(--accent-ink)}
+.subject-final>div{flex:1;min-width:0}.subject-final strong,.subject-final small{display:block}.subject-final small{font-size:11px;margin-top:3px}.subject-final button{flex:none}
+@media(max-width:900px){.subject-detail{grid-template-columns:1fr}.subject-detail-cover{min-height:180px}.subject-detail-cover img{min-height:180px;max-height:240px}}
+@media(max-width:540px){.subject-card-grid{grid-template-columns:1fr}.subject-lesson-list li,.subject-final{flex-wrap:wrap}.subject-lesson-list button,.subject-final button{width:100%;justify-content:center}.subject-detail-body{padding:15px}}
+@media(prefers-reduced-motion:reduce){.subject-card{transition:none}.subject-card:hover{transform:none}}
