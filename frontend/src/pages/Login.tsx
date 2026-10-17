@@ -9,13 +9,15 @@ export const Login: React.FC<{ superAdmin?: boolean }> = ({ superAdmin = false }
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [brand, setBrand] = useState<Tenant | null>(null);
+  const [brandingReady, setBrandingReady] = useState(false);
   const loginVideo = Boolean(brand?.loginImageUrl && /\.mp4(?:\?|$)/i.test(brand.loginImageUrl));
 
   useEffect(() => {
+    let active = true;
     fetch('/api/public/tenant-branding')
       .then(response => response.status === 204 ? null : response.json())
       .then((data) => {
-        if (!data) return;
+        if (!active || !data) return;
         setBrand(data);
         document.title = data.browserTitle || `${data.nome} | FacilitaEstudos`;
         if (data.faviconUrl) {
@@ -24,7 +26,9 @@ export const Login: React.FC<{ superAdmin?: boolean }> = ({ superAdmin = false }
           icon.href = data.faviconUrl;
         }
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => { if (active) setBrandingReady(true); });
+    return () => { active = false; };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,6 +40,10 @@ export const Login: React.FC<{ superAdmin?: boolean }> = ({ superAdmin = false }
       setError(err.response?.data?.error || 'Erro ao realizar login.');
     }
   };
+
+  if (!brandingReady) {
+    return <div className="login-brand-loading" role="status" aria-live="polite"><span className="login-brand-spinner" aria-hidden="true" /><span>Preparando sua instituição…</span></div>;
+  }
 
   return (
     <div className="login" style={brand ? { '--login-accent': brand.primaryColor } as React.CSSProperties : undefined}>
