@@ -198,6 +198,8 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stro
 .mod .r{text-align:right}
 
 /* modal */
+:is(dialog,[role="dialog"],.modal,.institution-wizard,.live-dialog,.academic-dialog){scrollbar-width:none;-ms-overflow-style:none}
+:is(dialog,[role="dialog"],.modal,.institution-wizard,.live-dialog,.academic-dialog)::-webkit-scrollbar{display:none}
 .overlay{position:fixed;inset:0;background:rgba(8,20,45,.55);z-index:40;display:grid;place-items:center;padding:16px}
 .modal{background:var(--paper);border-radius:14px;width:100%;max-width:560px;max-height:92vh;overflow:auto;box-shadow:var(--shadow);padding:22px 24px}
 .modal h2{font-size:18px} .modal .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
