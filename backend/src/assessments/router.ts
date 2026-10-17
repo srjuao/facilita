@@ -53,7 +53,7 @@ async function lockedExam(tx: Db, req: AuthRequest, editing = false) {
         tx.lesson.count({ where: { moduleId: finalModule.id, archivedAt: null } }),
         tx.lessonCompletion.count({ where: { userId: access.actor.id, lesson: { moduleId: finalModule.id, archivedAt: null } } })
       ]);
-      if (completed < lessons) throw new PlanError(403, 'Conclua todas as aulas da matéria antes da prova final.');
+      if (!lessons || completed < lessons) throw new PlanError(403, 'Conclua todas as aulas da matéria antes da prova final.');
     }
   }
   return { exam, ...access };
@@ -79,7 +79,7 @@ export async function listAssessments(req: AuthRequest, courseId: string) {
       include: { _count: { select: { questions: { where: { archivedAt: null } }, attempts: { where: { userId: access.actor.id } } } } }, orderBy: { nome: 'asc' } });
     const finalModules = !access.editor ? await tx.module.findMany({ where: { courseId, finalExamId: { not: null } }, select: { id: true, finalExamId: true, lessons: { where: { archivedAt: null }, select: { id: true } } } }) : [];
     const completed = !access.editor ? new Set((await tx.lessonCompletion.findMany({ where: { userId: access.actor.id, lesson: { module: { courseId }, archivedAt: null } }, select: { lessonId: true } })).map(item => item.lessonId)) : new Set<string>();
-    return exams.filter(exam => !finalModules.some(module => module.finalExamId === exam.id && module.lessons.some(lesson => !completed.has(lesson.id)))).map(exam => ({ ...metadata(exam), questionCount: exam._count.questions, attemptCount: exam._count.attempts }));
+    return exams.filter(exam => !finalModules.some(module => module.finalExamId === exam.id && (!module.lessons.length || module.lessons.some(lesson => !completed.has(lesson.id))))).map(exam => ({ ...metadata(exam), questionCount: exam._count.questions, attemptCount: exam._count.attempts }));
   });
 }
 assessmentRouter.get('/courses/:courseId/exams', handle(async (req, res) => res.json({ exams: await listAssessments(req, req.params.courseId) })));

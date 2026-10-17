@@ -26,8 +26,14 @@ export const getExams = async (req: AuthRequest, res: Response) => {
       select: { id: true, nome: true, data: true, published: true, maxAttempts: true, passingScore: true, version: true,
         _count: { select: { questions: { where: { archivedAt: null } } } } }
     });
+    const lockedIds = new Set<string>();
+    if (account.role === 'aluno') {
+      const finalModules = await prisma.module.findMany({ where: { courseId: scopedCourseId, finalExamId: { not: null } }, select: { id: true, finalExamId: true, lessons: { where: { archivedAt: null }, select: { id: true } } } });
+      const complete = new Set((await prisma.lessonCompletion.findMany({ where: { userId: account.id, lesson: { module: { courseId: scopedCourseId }, archivedAt: null } }, select: { lessonId: true } })).map(item => item.lessonId));
+      for (const module of finalModules) if (module.finalExamId && (!module.lessons.length || module.lessons.some(lesson => !complete.has(lesson.id)))) lockedIds.add(module.finalExamId);
+    }
     // Legacy readers receive metadata only: never spread question answers or explanations.
-    return res.json(exams.map(e => ({ id: e.id, nome: e.nome, data: e.data, published: e.published, maxAttempts: e.maxAttempts,
+    return res.json(exams.filter(e => !lockedIds.has(e.id)).map(e => ({ id: e.id, nome: e.nome, data: e.data, published: e.published, maxAttempts: e.maxAttempts,
       passingScore: e.passingScore, version: e.version, q: e._count.questions, _count: e._count })));
   } catch (error) {
     if (error instanceof PaidCourseError) return res.status(error.status).json({ error: error.message, code: error.code, courseId: error.courseId, priceCents: error.priceCents });

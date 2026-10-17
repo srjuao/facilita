@@ -68,6 +68,8 @@ model Tenant {
   tuitionAdjustments TuitionAdjustment[]
   tuitionInvoices TuitionInvoice[]
   liveSessions LiveSession[]
+  certificateTemplates CertificateTemplate[]
+  certificateIssues CertificateIssue[]
 }
 
 model TuitionSettings {
@@ -304,6 +306,7 @@ model User {
   createdLiveSessions LiveSession[]
   facilitatedLiveRooms LiveRoom[] @relation("LiveRoomFacilitator")
   lessonCompletions LessonCompletion[]
+  certificateIssues CertificateIssue[]
 }
 
 model CourseEntitlement {
@@ -550,6 +553,41 @@ model LessonAttachment {
   createdAt DateTime @default(now())
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   @@index([lessonId])
+}
+
+model CertificateTemplate {
+  id String @id @default(cuid())
+  tenantId String
+  scope String
+  targetId String
+  enabled Boolean @default(false)
+  title String
+  issuer String
+  signatory String
+  signatoryRole String
+  workloadHours Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  issues CertificateIssue[]
+  @@unique([tenantId, scope, targetId])
+}
+
+model CertificateIssue {
+  id String @id @default(cuid())
+  code String @unique
+  templateId String
+  tenantId String
+  userId String
+  scope String
+  targetId String
+  issuedAt DateTime @default(now())
+  snapshot Json
+  template CertificateTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  @@unique([userId, scope, targetId])
+  @@index([tenantId, issuedAt])
 }
 
 model Exam {

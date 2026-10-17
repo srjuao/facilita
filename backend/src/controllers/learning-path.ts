@@ -20,7 +20,7 @@ export async function learningState(moduleId: string, userId: string, role: stri
       pdfUrl: locked ? null : lesson.pdfUrl, completed: completed.has(lesson.id), locked,
       attachments: locked ? [] : attachments.map(file => ({ ...file, downloadUrl: `/api/lessons/${lesson.id}/attachments/${file.id}/download` })) };
   });
-  return { lessons: decorated, complete: lessons.every(item => completed.has(item.id)) };
+  return { lessons: decorated, complete: lessons.length > 0 && lessons.every(item => completed.has(item.id)) };
 }
 
 export async function studentCanAccessLesson(lessonId: string, userId: string, role: string) {
