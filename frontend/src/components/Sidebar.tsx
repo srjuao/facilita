@@ -181,7 +181,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
         <button 
           onClick={logout} 
           title="Sair" aria-label="Sair da conta"
-          style={{ cursor: 'pointer', background: 'none', border: 0, color: 'var(--side-muted)', display: 'flex', alignItems: 'center' }}
+          style={{ cursor: 'pointer', background: 'none', border: 0, color: 'var(--side-muted)', alignItems: 'center' }}
         >
           <LogOut size={16} />
         </button>
