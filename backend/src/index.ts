@@ -10,6 +10,7 @@ import { getExams } from './controllers/exam.controller';
 import { getLessonsByModule, getLessonById, completeLesson } from './controllers/lesson.controller';
 import { coverUpload, attachmentUpload, uploadModuleCover, getModuleCover, uploadLessonAttachment, downloadLessonAttachment } from './controllers/academic-assets';
 import { createCoordCourse, createCoordTeacher, getCoordCourses } from './controllers/coord.controller';
+import { getCoordDashboard } from './controllers/coord-dashboard.controller';
 import { createModule, createLesson } from './controllers/content.controller';
 import { brandingUpload, handleBrandingUpload, upload, handleVideoUpload } from './controllers/upload.controller';
 import { authenticateToken, authorizeRoles } from './middleware/auth';
@@ -95,6 +96,7 @@ app.patch('/api/tenants/:id/users/:userId', authenticateToken, authorizeRoles('s
 app.post('/api/tenants/:id/users', authenticateToken, authorizeRoles('superadmin'), createTenantUser);
 
 // Gestão da própria unidade pela coordenação.
+app.get('/api/coord/dashboard', authenticateToken, requireInstitutionSession, authorizeRoles('coord'), getCoordDashboard);
 app.get('/api/coord/courses', authenticateToken, requireInstitutionSession, authorizeRoles('coord'), getCoordCourses);
 app.post('/api/coord/courses', authenticateToken, requireInstitutionPermission('content.manage'), authorizeRoles('coord'), createCoordCourse);
 app.post('/api/coord/teachers', authenticateToken, requireInstitutionPermission('content.manage'), authorizeRoles('coord'), createCoordTeacher);

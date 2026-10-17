@@ -96,8 +96,6 @@ export const AppContent: React.FC = () => {
       'co-provas': { title: 'Provas e simulados', kind: 'exams' },
       'co-conteudo': { title: 'Conteúdo', kind: 'modules' },
       'co-relatorio': { title: 'Relatórios', kind: 'empty' },
-      'al-inicio': { title: 'Meu curso', kind: 'modules' },
-      'al-periodos': { title: 'Períodos e matérias', kind: 'modules' },
       'al-materias': { title: 'Matérias', kind: 'modules' },
       'al-provas': { title: 'Provas', kind: 'exams' },
       'al-flash': { title: 'Flashcards', kind: 'empty' },
