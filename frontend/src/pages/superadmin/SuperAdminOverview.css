@@ -24,3 +24,19 @@
 @media(max-width:850px){.sa-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.sa-metrics article:nth-child(2){border-right:0}.sa-metrics article:nth-child(-n+2){border-bottom:1px solid var(--line)}.sa-dashboard-head,.sa-table-heading{align-items:flex-start;flex-direction:column;gap:18px}.sa-dashboard-refresh{align-items:center;flex-direction:row;flex-wrap:wrap}.sa-dashboard-refresh>span{order:2}.sa-search{width:100%}.sa-search input{width:100%;min-width:0}}
 @media(max-width:520px){.sa-dashboard{padding:20px 16px 32px}.sa-dashboard h1{font-size:25px}.sa-institutions{padding:20px 16px 0}.sa-metrics article{padding:18px 14px}.sa-metric-label{font-size:11px;align-items:flex-start}.sa-metric-label svg{width:15px}.sa-metrics strong{font-size:31px}.sa-operation{padding:22px 18px}.sa-operation-copy{gap:12px}.sa-operation-icon{width:35px;height:35px;border-radius:9px}.sa-operation-icon svg{width:19px}.sa-operation h2{font-size:17px}.sa-operation button{margin-left:0;width:100%}.sa-pending>div{align-items:flex-start;flex-direction:column;gap:9px;padding:15px}.sa-pending span{justify-content:flex-start}.sa-directory-footer{align-items:flex-start;flex-direction:column;gap:10px}.sa-dashboard-refresh>span{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.sa-refreshing{animation:none}}
+
+/* Dashboard composition inspired by the reference, using live platform data. */
+.sa-dashboard{max-width:1500px;padding:24px 30px 46px}
+.sa-dashboard-head{margin-bottom:20px}.sa-dashboard h1{font-size:clamp(25px,2.45vw,36px);font-weight:700;margin-bottom:5px}
+.sa-metrics{gap:12px;border:0;background:transparent;box-shadow:none;overflow:visible;margin-bottom:20px}
+.sa-metrics article{background:#fff;border:1px solid #ededeb;border-radius:18px;padding:19px 20px;box-shadow:0 16px 34px -32px #1118}
+.sa-metrics article:last-child{border-right:1px solid #ededeb}
+.sa-metric-label{font-size:12px;color:#626973}.sa-metric-label svg{color:var(--accent)}
+.sa-metrics strong{font-size:31px;margin:11px 0 5px;letter-spacing:-.065em}
+.sa-metrics small{font-size:11px;color:#838a91}
+.sa-operation{background:#171717;border-radius:20px;padding:23px 25px}.sa-operation-icon{border-radius:13px;color:#fff;background:var(--accent);border:0}
+.sa-operation p{color:#c8c8c7}.sa-operation .eyebrow{color:#fff;opacity:.72}.sa-operation button{color:#222!important;border-radius:11px!important}
+.sa-pending,.sa-institutions{border-color:#ededeb;border-radius:18px;box-shadow:0 16px 38px -36px #1515154d}
+.sa-institutions{margin-top:20px}.sa-institutions th{background:#fafaf9}.sa-institution-monogram{border:0;border-radius:12px}
+@media(max-width:850px){.sa-metrics article:nth-child(-n+2){border-bottom:1px solid #ededeb}.sa-metrics article:nth-child(2){border-right:1px solid #ededeb}}
+@media(max-width:520px){.sa-dashboard{padding:18px 16px 32px}.sa-metrics{gap:9px}.sa-metrics article{padding:16px 13px}.sa-metrics strong{font-size:27px}.sa-operation{padding:20px 17px}}

@@ -137,7 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     <>
     <div className="mobile-navigation"><span>Facilita Estudos</span><button ref={toggleRef} aria-label={open ? 'Fechar menu' : 'Abrir menu'} aria-expanded={open} aria-controls="platform-navigation" onClick={() => setOpen(!open)}>{open ? <X size={22} /> : <Menu size={22} />}</button></div>
     {open && <button className="navigation-backdrop" aria-label="Fechar menu" onClick={() => setOpen(false)} />}
-    <aside ref={menuRef} id="platform-navigation" className={`side${open ? ' side-open' : ''}`}>
+    <aside ref={menuRef} id="platform-navigation" className={`side side-${role}${open ? ' side-open' : ''}`}>
       <div className="wm-wrap">
         <div className="wm-mini">
           <img src={tenantLogo || '/facilita-estudos-mark.svg'} alt={tenantLogo ? tenantName : 'Facilita Estudos'} onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = '/facilita-estudos-mark.svg'; }} />
