@@ -46,6 +46,16 @@ async function lockedExam(tx: Db, req: AuthRequest, editing = false) {
   if (!exam) throw new PlanError(404, 'Avaliação não encontrada.');
   const access = await assessmentAccess(tx, req, exam.courseId, editing);
   if (!access.editor && (!exam.published || exam.archivedAt)) throw new PlanError(404, 'Avaliação não disponível.');
+  if (access.actor.role === 'aluno') {
+    const finalModule = await tx.module.findUnique({ where: { finalExamId: exam.id }, select: { id: true } });
+    if (finalModule) {
+      const [lessons, completed] = await Promise.all([
+        tx.lesson.count({ where: { moduleId: finalModule.id, archivedAt: null } }),
+        tx.lessonCompletion.count({ where: { userId: access.actor.id, lesson: { moduleId: finalModule.id, archivedAt: null } } })
+      ]);
+      if (completed < lessons) throw new PlanError(403, 'Conclua todas as aulas da matéria antes da prova final.');
+    }
+  }
   return { exam, ...access };
 }
 const metadata = (exam: { id: string; nome: string; published: boolean; archivedAt: Date | null; maxAttempts: number; passingScore: number; version: number }) =>
@@ -67,7 +77,9 @@ export async function listAssessments(req: AuthRequest, courseId: string) {
     const access = await assessmentAccess(tx, req, courseId);
     const exams = await tx.exam.findMany({ where: { courseId, ...(!access.editor ? { published: true, archivedAt: null } : {}) },
       include: { _count: { select: { questions: { where: { archivedAt: null } }, attempts: { where: { userId: access.actor.id } } } } }, orderBy: { nome: 'asc' } });
-    return exams.map(exam => ({ ...metadata(exam), questionCount: exam._count.questions, attemptCount: exam._count.attempts }));
+    const finalModules = !access.editor ? await tx.module.findMany({ where: { courseId, finalExamId: { not: null } }, select: { id: true, finalExamId: true, lessons: { where: { archivedAt: null }, select: { id: true } } } }) : [];
+    const completed = !access.editor ? new Set((await tx.lessonCompletion.findMany({ where: { userId: access.actor.id, lesson: { module: { courseId }, archivedAt: null } }, select: { lessonId: true } })).map(item => item.lessonId)) : new Set<string>();
+    return exams.filter(exam => !finalModules.some(module => module.finalExamId === exam.id && module.lessons.some(lesson => !completed.has(lesson.id)))).map(exam => ({ ...metadata(exam), questionCount: exam._count.questions, attemptCount: exam._count.attempts }));
   });
 }
 assessmentRouter.get('/courses/:courseId/exams', handle(async (req, res) => res.json({ exams: await listAssessments(req, req.params.courseId) })));

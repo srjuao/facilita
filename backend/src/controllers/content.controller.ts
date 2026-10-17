@@ -31,9 +31,10 @@ export const createLesson = async (req: AuthRequest, res: Response) => {
     const module = await prisma.module.findFirst({ where: { id: req.params.id, archivedAt: null, periodId: { not: null }, period: { archivedAt: null }, course: { tenantId: user.tenantId! }, ...(user.role === 'professor' ? { courseId: user.courseId || '' } : {}) } });
     if (!module) return res.status(404).json({ error: 'Matéria não encontrada neste curso.' });
     const { titulo, videoUrl } = req.body;
-    if (typeof titulo !== 'string' || !titulo.trim() || titulo.length > 200 || typeof videoUrl !== 'string' || !(/^https:\/\//.test(videoUrl) || /^\/(?:api\/)?uploads\/videos\/[\w.-]+$/.test(videoUrl))) return res.status(400).json({ error: 'Informe o título e envie um vídeo ou uma URL HTTPS válida.' });
+    if (typeof titulo !== 'string' || !titulo.trim() || titulo.length > 200 || typeof videoUrl !== 'string' || !/^\/(?:api\/)?uploads\/videos\/[\w.-]+\.(mp4|webm|mov)$/i.test(videoUrl)) return res.status(400).json({ error: 'Informe o título e envie um vídeo pela plataforma.' });
     const lesson = await prisma.$transaction(async tx => {
-      const created = await tx.lesson.create({ data: { titulo: titulo.trim(), videoUrl, moduleId: module.id, prof: user.nome, duracao: '', desc: '' } });
+      const last = await tx.lesson.aggregate({ where: { moduleId: module.id }, _max: { position: true } });
+      const created = await tx.lesson.create({ data: { titulo: titulo.trim(), videoUrl, moduleId: module.id, position: (last._max.position ?? 0) + 1, prof: user.nome, duracao: '', desc: '' } });
       await tx.module.update({ where: { id: module.id }, data: { aulas: { increment: 1 } } });
       await tx.course.update({ where: { id: module.courseId }, data: { aulas: { increment: 1 } } });
       return created;

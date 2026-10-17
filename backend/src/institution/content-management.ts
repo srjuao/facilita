@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { InstitutionRequest, institutionDb as db, requireInstitutionPermission } from './policy';
 import { PlanError } from '../controllers/plan-policy';
+import { moduleCoverUrl } from '../controllers/academic-assets';
 
 export const contentManagementRouter = Router();
 contentManagementRouter.use(requireInstitutionPermission('content.manage'));
@@ -34,10 +35,10 @@ contentManagementRouter.get('/courses/:courseId/structure', route(async (req, re
   const result = await db.$transaction(async tx => {
     await authorize(tx, req, req.params.courseId);
     const [modules, periods] = await Promise.all([
-      tx.module.findMany({ where: { courseId: req.params.courseId }, select: { id: true, nome: true, periodId: true, archivedAt: true, updatedAt: true, lessons: { select: { id: true, titulo: true, desc: true, prof: true, archivedAt: true, updatedAt: true }, orderBy: { titulo: 'asc' } } }, orderBy: { nome: 'asc' } }),
+      tx.module.findMany({ where: { courseId: req.params.courseId }, select: { id: true, nome: true, img: true, periodId: true, finalExamId: true, archivedAt: true, updatedAt: true, lessons: { select: { id: true, titulo: true, desc: true, prof: true, position: true, archivedAt: true, updatedAt: true }, orderBy: [{ position: 'asc' }, { id: 'asc' }] } }, orderBy: { nome: 'asc' } }),
       tx.academicPeriod.findMany({ where: { courseId: req.params.courseId }, orderBy: { nome: 'asc' } }),
     ]);
-    return { modules, periods };
+    return { modules: modules.map(module => ({ ...module, img: moduleCoverUrl(module.id, module.img) })), periods };
   });
   res.json(result);
 }));
@@ -52,28 +53,32 @@ contentManagementRouter.patch('/modules/:id', route(async (req, res) => {
     if (periodId !== null && typeof periodId !== 'string') throw new PlanError(400, 'Período inválido.');
     if (periodId && periodId !== current.periodId && !await tx.academicPeriod.findFirst({ where: { id: periodId, courseId: current.courseId, archivedAt: null } })) throw new PlanError(400, 'Selecione um período ativo deste curso.');
     if (!periodId && body.archived !== true) throw new PlanError(400, 'Selecione um período para esta matéria.');
+    if (body.finalExamId !== undefined && body.finalExamId !== null && (typeof body.finalExamId !== 'string' || !await tx.exam.findFirst({ where: { id: body.finalExamId, courseId: current.courseId, archivedAt: null } }))) throw new PlanError(400, 'Selecione uma avaliação deste curso.');
     const result = await tx.module.updateMany({ where: { id: current.id, updatedAt: expectedUpdatedAt }, data: {
       ...(body.nome !== undefined ? { nome: text(body.nome, 120) } : {}), ...(body.periodId !== undefined ? { periodId } : {}),
+      ...(body.finalExamId !== undefined ? { finalExamId: body.finalExamId } : {}),
       ...(typeof body.archived === 'boolean' ? { archivedAt: body.archived ? new Date() : null } : {}),
     } });
     if (!result.count) throw new PlanError(409, 'A matéria foi alterada em outra solicitação. Atualize a tela.');
-    return tx.module.findUnique({ where: { id: current.id }, select: { id: true, nome: true, periodId: true, updatedAt: true, archivedAt: true } });
+    return tx.module.findUnique({ where: { id: current.id }, select: { id: true, nome: true, img: true, periodId: true, finalExamId: true, updatedAt: true, archivedAt: true } });
   });
   res.json({ module });
 }));
 contentManagementRouter.patch('/lessons/:id', route(async (req, res) => {
   const body = req.body ?? {}, expectedUpdatedAt = version(body.expectedUpdatedAt);
   if (body.archived !== undefined && typeof body.archived !== 'boolean') throw new PlanError(400, 'Estado inválido.');
+  if (body.position !== undefined && (!Number.isSafeInteger(body.position) || body.position < 1 || body.position > 10000)) throw new PlanError(400, 'Ordem da aula inválida.');
   const lesson = await db.$transaction(async tx => {
     const current = await tx.lesson.findUnique({ where: { id: req.params.id }, include: { module: true } });
     if (!current) throw new PlanError(404, 'Aula não encontrada.');
     await authorize(tx, req, current.module.courseId, true);
     const result = await tx.lesson.updateMany({ where: { id: current.id, updatedAt: expectedUpdatedAt }, data: {
       ...(body.titulo !== undefined ? { titulo: text(body.titulo, 200) } : {}), ...(body.desc !== undefined ? { desc: text(body.desc, 10000, false) } : {}),
+      ...(body.position !== undefined ? { position: body.position } : {}),
       ...(typeof body.archived === 'boolean' ? { archivedAt: body.archived ? new Date() : null } : {}),
     } });
     if (!result.count) throw new PlanError(409, 'A aula foi alterada em outra solicitação. Atualize a tela.');
-    return tx.lesson.findUnique({ where: { id: current.id }, select: { id: true, titulo: true, desc: true, updatedAt: true, archivedAt: true } });
+    return tx.lesson.findUnique({ where: { id: current.id }, select: { id: true, titulo: true, desc: true, position: true, updatedAt: true, archivedAt: true } });
   });
   res.json({ lesson });
 }));

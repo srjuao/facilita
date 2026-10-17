@@ -7,7 +7,8 @@ import { getCourseDetails } from './controllers/course.controller';
 import { createStudent, getStudents, getStudentById } from './controllers/student.controller';
 import { getChatHistory, sendMessage } from './controllers/chat.controller';
 import { getExams } from './controllers/exam.controller';
-import { getLessonsByModule, getLessonById } from './controllers/lesson.controller';
+import { getLessonsByModule, getLessonById, completeLesson } from './controllers/lesson.controller';
+import { coverUpload, attachmentUpload, uploadModuleCover, getModuleCover, uploadLessonAttachment, downloadLessonAttachment } from './controllers/academic-assets';
 import { createCoordCourse, createCoordTeacher, getCoordCourses } from './controllers/coord.controller';
 import { createModule, createLesson } from './controllers/content.controller';
 import { brandingUpload, handleBrandingUpload, upload, handleVideoUpload } from './controllers/upload.controller';
@@ -48,6 +49,7 @@ app.use('/uploads/branding', express.static(path.join(__dirname, '../uploads/bra
 app.use('/api/uploads/branding', express.static(path.join(__dirname, '../uploads/branding')));
 app.use(['/uploads', '/api/uploads'], (_req, res) => res.status(403).json({ error: 'Use o acesso autorizado da aula para reproduzir vídeos.' }));
 app.get('/api/media/lessons/:id', streamLessonMedia);
+app.get('/api/modules/:id/cover', getModuleCover);
 
 // Auth
 app.post('/api/auth/login', login);
@@ -98,10 +100,14 @@ app.post('/api/coord/teachers', authenticateToken, requireInstitutionPermission(
 app.get('/api/courses/:id', authenticateToken, getCourseDetails);
 app.post('/api/modules', authenticateToken, requireInstitutionPermission('content.manage'), authorizeRoles('coord', 'professor'), createModule);
 app.post('/api/modules/:id/lessons', authenticateToken, requireInstitutionPermission('content.manage'), featureGate('videoAulas'), authorizeRoles('coord', 'professor'), createLesson);
+app.post('/api/modules/:id/cover', authenticateToken, requireInstitutionPermission('content.manage'), authorizeRoles('coord', 'professor'), coverUpload.single('file'), uploadModuleCover);
+app.post('/api/lessons/:id/attachments', authenticateToken, requireInstitutionPermission('content.manage'), authorizeRoles('coord', 'professor'), attachmentUpload.single('file'), uploadLessonAttachment);
+app.get('/api/lessons/:id/attachments/:attachmentId/download', authenticateToken, downloadLessonAttachment);
 
 // Lessons
 app.get('/api/lessons', authenticateToken, featureGate('videoAulas'), getLessonsByModule);
 app.get('/api/lessons/:id', authenticateToken, featureGate('videoAulas'), getLessonById);
+app.post('/api/lessons/:id/complete', authenticateToken, featureGate('videoAulas'), completeLesson);
 
 // Students
 app.get('/api/students', authenticateToken, requireInstitutionSession, getStudents);

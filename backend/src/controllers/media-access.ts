@@ -4,6 +4,7 @@ import path from 'path';
 import { PrismaClient } from '@prisma/client';
 import { assertCourseContentAccess } from '../commerce/access';
 import { PlanError } from './plan-policy';
+import { studentCanAccessLesson } from './learning-path';
 const prisma = new PrismaClient();
 const MAX_AGE = 2 * 60 * 60;
 const secret = () => {
@@ -41,6 +42,7 @@ export async function streamLessonMedia(req: Request, res: Response) {
     if (account.disabledAt) return res.status(403).json({ error: 'Esta conta está desativada.' });
     if (account.role !== 'superadmin' && (!account.tenant?.ativo || account.tenant.plan && !account.tenant.plan.videoAulas)) return res.status(403).json({ error: 'Seu acesso a este vídeo não está mais disponível.' });
     await assertCourseContentAccess(account, lesson.module.course);
+    if (!await studentCanAccessLesson(lesson.id, account.id, account.role)) return res.status(403).json({ error: 'Conclua a aula anterior para assistir.' });
     const filename = localVideoFilename(lesson.videoUrl);
     if (!filename) return res.status(404).json({ error: 'Vídeo local não encontrado.' });
     // sendFile supports HTTP Range requests for native HTML video seeking.

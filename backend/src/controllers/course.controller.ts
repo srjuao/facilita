@@ -4,7 +4,8 @@ import { AuthRequest } from '../middleware/auth';
 import { assertCourseContentAccess, PaidCourseError } from '../commerce/access';
 import { currentAccess } from './plan-access';
 import { PlanError } from './plan-policy';
-import { signedLesson } from './media-access';
+import { learningState } from './learning-path';
+import { moduleCoverUrl } from './academic-assets';
 
 const prisma = new PrismaClient();
 
@@ -15,7 +16,7 @@ export const getCourseDetails = async (req: AuthRequest, res: Response) => {
       where: { id },
       include: {
         tenant: true,
-        modules: { where: { archivedAt: null, OR: [{ periodId: null }, { period: { archivedAt: null } }] }, include: { lessons: { where: { archivedAt: null } } } },
+        modules: { where: { archivedAt: null, OR: [{ periodId: null }, { period: { archivedAt: null } }] }, include: { lessons: { where: { archivedAt: null }, orderBy: [{ position: 'asc' }, { id: 'asc' }] }, finalExam: { select: { id: true, nome: true, published: true, archivedAt: true } } } },
         exams: { where: { archivedAt: null }, include: { _count: { select: { questions: { where: { archivedAt: null } } } } } },
         students: true
       }
@@ -27,12 +28,16 @@ export const getCourseDetails = async (req: AuthRequest, res: Response) => {
     const plan = user.role === 'superadmin' ? null : user.tenant?.plan;
 
     const { students, ...courseData } = course;
+    const states = await Promise.all(course.modules.map(module => learningState(module.id, user.id, user.role)));
     const response: Record<string, unknown> = {
       ...courseData,
-      exams: plan && !plan.provas ? [] : course.exams.filter(exam => user.role !== 'aluno' || exam.published),
-      modules: course.modules.map(m => ({
+      exams: plan && !plan.provas ? [] : course.exams.filter(exam => user.role !== 'aluno' || exam.published && !course.modules.some((module, index) => module.finalExamId === exam.id && !states[index].complete)),
+      modules: course.modules.map((m, index) => ({
         ...m,
-        lessons: plan && !plan.videoAulas ? [] : m.lessons.map(lesson => signedLesson(lesson, user.id)),
+        img: moduleCoverUrl(m.id, m.img),
+        finalExam: user.role === 'aluno' && (!states[index].complete || !m.finalExam?.published || m.finalExam?.archivedAt) ? null : m.finalExam,
+        finalExamLocked: user.role === 'aluno' && !states[index].complete,
+        lessons: plan && !plan.videoAulas ? [] : states[index].lessons,
         lista: plan && !plan.videoAulas ? [] : JSON.parse(m.lista || '[]')
       }))
     };

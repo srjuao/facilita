@@ -303,6 +303,7 @@ model User {
   authoredCourseAccessEvents CourseAccessEvent[] @relation("AccessActor")
   createdLiveSessions LiveSession[]
   facilitatedLiveRooms LiveRoom[] @relation("LiveRoomFacilitator")
+  lessonCompletions LessonCompletion[]
 }
 
 model CourseEntitlement {
@@ -506,6 +507,8 @@ model Module {
   courseId String
   course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons  Lesson[]
+  finalExamId String? @unique
+  finalExam Exam? @relation("ModuleFinalExam", fields: [finalExamId], references: [id], onDelete: SetNull)
   periodId String?
   period AcademicPeriod? @relation(fields: [periodId], references: [id], onDelete: SetNull)
 }
@@ -522,6 +525,31 @@ model Lesson {
   pdfUrl      String?
   moduleId    String
   module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  position Int @default(0)
+  completions LessonCompletion[]
+  attachments LessonAttachment[]
+  @@index([moduleId, position])
+}
+
+model LessonCompletion {
+  userId String
+  lessonId String
+  completedAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  @@id([userId, lessonId])
+}
+
+model LessonAttachment {
+  id String @id @default(cuid())
+  lessonId String
+  filename String
+  storageName String
+  mimeType String
+  size Int
+  createdAt DateTime @default(now())
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  @@index([lessonId])
 }
 
 model Exam {
@@ -543,6 +571,7 @@ model Exam {
   courseId String
   course   Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
   questions Question[]
+  finalForModule Module? @relation("ModuleFinalExam")
 }
 
 model Question {
