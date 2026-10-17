@@ -59,7 +59,7 @@ export async function uploadLessonAttachment(req: AuthRequest, res: Response) {
 export async function downloadLessonAttachment(req: AuthRequest, res: Response) {
   try {
     const account = await currentAccess(req);
-    const file = await db.lessonAttachment.findFirst({ where: { id: req.params.attachmentId, lessonId: req.params.id, lesson: { archivedAt: null, module: { archivedAt: null } } }, include: { lesson: { include: { module: { include: { course: true } } } } } });
+    const file = await db.lessonAttachment.findFirst({ where: { id: req.params.attachmentId, lessonId: req.params.id, lesson: { archivedAt: null, module: { archivedAt: null, OR: [{ periodId: null }, { period: { archivedAt: null } }] } } }, include: { lesson: { include: { module: { include: { course: true } } } } } });
     if (!file) return res.sendStatus(404);
     if (account.role !== 'superadmin' && account.tenant?.plan && !account.tenant.plan.videoAulas) return res.status(403).json({ error: 'Conteúdo indisponível no plano atual.' });
     await assertCourseContentAccess(account, file.lesson.module.course);
