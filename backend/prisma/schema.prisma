@@ -70,6 +70,7 @@ model Tenant {
   liveSessions LiveSession[]
   certificateTemplates CertificateTemplate[]
   certificateIssues CertificateIssue[]
+  studentNotifications StudentNotification[]
 }
 
 model TuitionSettings {
@@ -307,6 +308,25 @@ model User {
   facilitatedLiveRooms LiveRoom[] @relation("LiveRoomFacilitator")
   lessonCompletions LessonCompletion[]
   certificateIssues CertificateIssue[]
+  studentNotifications StudentNotification[]
+}
+
+model StudentNotification {
+  id String @id @default(cuid())
+  tenantId String
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind String
+  sourceId String
+  title String
+  body String
+  targetView String
+  createdAt DateTime @default(now())
+  readAt DateTime?
+  @@index([userId, tenantId, createdAt])
+  @@index([userId, readAt])
+  @@unique([userId, kind, sourceId])
 }
 
 model CourseEntitlement {

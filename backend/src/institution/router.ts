@@ -1,5 +1,6 @@
 import { Router, Response, NextFunction } from 'express';
 import { InstitutionRequest, requireInstitutionSession, institutionDb as db, PERMISSIONS, effectivePermissions, cleanText, cleanMembers } from './policy';
+import { notifyNewNotice } from '../notifications/service';
 
 export const institutionRouter = Router();
 export { requireInstitutionPermission, requireInstitutionSession } from './policy';
@@ -61,10 +62,18 @@ institutionRouter.patch('/notices/:id', route(async (req, res) => {
   const title = cleanText(req.body.title, 160), body = cleanText(req.body.body, 10000);
   if (!title || !body) return res.status(400).json({ error: 'Informe título (até 160 caracteres) e aviso (até 10.000 caracteres).' });
   const where = { id: req.params.id, tenantId: req.institution!.tenantId };
-  if (!await db.announcement.findFirst({ where })) return res.status(404).json({ error: 'Aviso não encontrado.' });
-  const result = await db.announcement.updateMany({ where: { ...where, updatedAt: version }, data: { title, body, ...archiveChange(req) } });
-  if (!result.count) return conflict(res);
-  res.json(await db.announcement.findFirst({ where, include: { author: { select: { id: true, nome: true } } } }));
+  const current = await db.announcement.findFirst({ where });
+  if (!current) return res.status(404).json({ error: 'Aviso não encontrado.' });
+  const updated = await db.$transaction(async tx => {
+    const result = await tx.announcement.updateMany({ where: { ...where, updatedAt: version }, data: { title, body, ...archiveChange(req) } });
+    if (!result.count) return null;
+    if (req.body.archived === true) await tx.studentNotification.deleteMany({ where: { tenantId: where.tenantId, kind: 'notice', sourceId: where.id } });
+    else if (req.body.archived === false && current.archivedAt) await notifyNewNotice(tx, { id: where.id, tenantId: where.tenantId, title, body });
+    else await tx.studentNotification.updateMany({ where: { tenantId: where.tenantId, kind: 'notice', sourceId: where.id }, data: { title, body: body.slice(0, 240) } });
+    return tx.announcement.findFirst({ where, include: { author: { select: { id: true, nome: true } } } });
+  }, { timeout: 20000 });
+  if (!updated) return conflict(res);
+  res.json(updated);
 }));
 institutionRouter.patch('/periods/:id', route(async (req, res) => {
   if (!allow(req, res, 'content.manage')) return;
@@ -163,7 +172,12 @@ institutionRouter.post('/notices', route(async (req, res) => {
   if (!allow(req, res, 'notices.manage')) return;
   const title = cleanText(req.body.title, 160), body = cleanText(req.body.body, 10000);
   if (!title || !body) return res.status(400).json({ error: 'Informe título (até 160 caracteres) e aviso (até 10.000 caracteres).' });
-  res.status(201).json(await db.announcement.create({ data: { title, body, tenantId: req.institution!.tenantId, createdBy: req.institution!.id }, include: { author: { select: { id: true, nome: true } } } }));
+  const notice = await db.$transaction(async tx => {
+    const created = await tx.announcement.create({ data: { title, body, tenantId: req.institution!.tenantId, createdBy: req.institution!.id }, include: { author: { select: { id: true, nome: true } } } });
+    await notifyNewNotice(tx, created);
+    return created;
+  }, { timeout: 20000 });
+  res.status(201).json(notice);
 }));
 institutionRouter.get('/periods', route(async (req, res) => {
   const session = req.institution!;

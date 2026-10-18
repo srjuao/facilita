@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { InstitutionRequest, requireInstitutionSession, cleanText } from '../institution/policy';
 import { PlanError } from '../controllers/plan-policy';
 import { commerceDb as db, parseCoursePrice } from './access';
+import { notifyCourseLinked } from '../notifications/service';
 
 export const commerceRouter = Router();
 const courseSelect = { id: true, nome: true, tenantId: true, paidContent: true, contentPriceCents: true, saleVersion: true } as const;
@@ -105,8 +106,14 @@ commerceRouter.patch('/courses/:id/access/:userId', route(async (req, res) => {
     const target = await tx.user.findFirst({ where: { id: req.params.userId, tenantId: req.institution!.tenantId, role: 'aluno' } });
     if (!target) throw new PlanError(404, 'Aluno não encontrado nesta instituição.');
     const key = { courseId: course.id, userId: target.id };
+    const previous = await tx.courseEntitlement.findUnique({ where: { courseId_userId: key }, select: { active: true } });
     const record = await tx.courseEntitlement.upsert({ where: { courseId_userId: key }, create: { ...key, active, reason, actorId: req.institution!.id }, update: { active, reason, actorId: req.institution!.id } });
     await tx.courseAccessEvent.create({ data: { ...key, actorId: req.institution!.id, action: active ? 'GRANT' : 'REVOKE', reason } });
+    if (active && !previous?.active) await notifyCourseLinked(tx, { id: target.id, tenantId: req.institution!.tenantId, courseId: course.id, courseName: course.nome, targetView: target.courseId === course.id ? 'al-materias' : 'al-store' });
+    if (!active && previous?.active && target.courseId !== course.id) {
+      const exams = await tx.exam.findMany({ where: { courseId: course.id }, select: { id: true } });
+      await tx.studentNotification.deleteMany({ where: { tenantId: req.institution!.tenantId, userId: target.id, OR: [{ kind: 'course', sourceId: course.id }, { kind: 'exam', sourceId: { in: exams.map(exam => exam.id) } }] } });
+    }
     return record;
   });
   res.json({ entitlement, message: 'Acesso atualizado. A liberação manual não é uma confirmação de pagamento.' });

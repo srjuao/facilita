@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { AuthRequest, canAccessCourse } from '../middleware/auth';
 import { enforceStudentCapacity } from './plan-access';
 import { PlanError } from './plan-policy';
+import { notifyCourseLinked } from '../notifications/service';
 
 const prisma = new PrismaClient();
 const validPassword = (value: string) => value.length >= 8 && /[A-Za-z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9]/.test(value);
@@ -25,7 +26,9 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
       if (!account?.tenantId || account.disabledAt || !['coord', 'professor', 'staff'].includes(account.role) || account.tenantId !== req.user!.tenantId || (account.role === 'staff' && !account.permissions.includes('students.manage')) || (account.role === 'professor' && (!account.permissions.includes('students.manage') || account.courseId !== targetCourseId || account.course?.tenantId !== account.tenantId))) throw new PlanError(403, 'Seu vínculo acadêmico ou suas permissões mudaram. Entre novamente.');
       await enforceStudentCapacity(tx, account.tenantId);
       const student = await tx.student.create({ data: { nome: nome.trim(), sub: matricula.trim(), progresso: 0, nota: 0, tempo: 0, ultimo: 0, risco: 'baixo', atividade: '[]', weeks: '[]', notas: '{}', tempos: '{}', courseId: targetCourseId } });
-      await tx.user.create({ data: { nome: nome.trim(), email: normalizedEmail, password: await bcrypt.hash(password, 12), papel: 'Aluno', role: 'aluno', tenantId: req.user!.tenantId!, courseId: targetCourseId, studentId: student.id } });
+      const user = await tx.user.create({ data: { nome: nome.trim(), email: normalizedEmail, password: await bcrypt.hash(password, 12), papel: 'Aluno', role: 'aluno', tenantId: req.user!.tenantId!, courseId: targetCourseId, studentId: student.id } });
+      const course = await tx.course.findUniqueOrThrow({ where: { id: targetCourseId }, select: { nome: true } });
+      await notifyCourseLinked(tx, { id: user.id, tenantId: req.user!.tenantId!, courseId: targetCourseId, courseName: course.nome });
       return student;
     });
     return res.status(201).json(result);

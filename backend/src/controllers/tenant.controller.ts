@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { AuthRequest, canAccessTenant } from '../middleware/auth';
 import { enforceStudentCapacity, lockTenant } from './plan-access';
 import { PlanError } from './plan-policy';
+import { notifyCourseLinked } from '../notifications/service';
 
 const prisma = new PrismaClient();
 
@@ -197,12 +198,21 @@ export const updateTenantUser = async (req: AuthRequest, res: Response) => {
         if (!student || student.course.tenantId !== req.params.id) throw new PlanError(409, 'O vínculo acadêmico deste usuário pertence a outra instituição. Regularize-o antes de editar.');
       }
       if (role === 'aluno' && latest.role !== 'aluno' && !latest.studentId) await enforceStudentCapacity(tx, req.params.id);
+      if (latest.role === 'aluno' && latest.courseId && (role !== 'aluno' || latest.courseId !== targetCourseId)) {
+        const oldExams = await tx.exam.findMany({ where: { courseId: latest.courseId }, select: { id: true } });
+        const stillEntitled = await tx.courseEntitlement.findFirst({ where: { userId: latest.id, courseId: latest.courseId, active: true }, select: { id: true } });
+        if (!stillEntitled) await tx.studentNotification.deleteMany({ where: { userId: latest.id, OR: [{ kind: 'course', sourceId: latest.courseId }, { kind: 'exam', sourceId: { in: oldExams.map(exam => exam.id) } }] } });
+      }
       const account = await tx.user.update({
         where: { id: existing.id, tenantId: req.params.id, role: { not: 'superadmin' } },
         data: { nome: nome.trim(), email: email.trim().toLowerCase(), role, courseId: targetCourseId, papel: role === 'coord' ? 'Coordenação' : role === 'professor' ? 'Professor' : 'Aluno', ...(hash ? { password: hash } : {}) },
         select: { id: true, nome: true, email: true, papel: true, role: true, courseId: true }
       });
       if (existing.studentId) await tx.student.update({ where: { id: existing.studentId }, data: { nome: nome.trim(), ...(targetCourseId ? { courseId: targetCourseId } : {}) } });
+      if (role === 'aluno' && targetCourseId && (latest.courseId !== targetCourseId || latest.role !== 'aluno')) {
+        const course = await tx.course.findUniqueOrThrow({ where: { id: targetCourseId }, select: { nome: true } });
+        await notifyCourseLinked(tx, { id: account.id, tenantId: req.params.id, courseId: targetCourseId, courseName: course.nome });
+      }
       return account;
     });
     return res.json(updated);

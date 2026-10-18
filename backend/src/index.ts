@@ -27,6 +27,7 @@ import { platformFinanceRouter } from './platform-finance/router';
 import { institutionFinanceRouter } from './institution-finance/router';
 import { liveRouter } from './live/router';
 import { certificateRouter, verifyCertificate } from './certificates/router';
+import { studentNotificationRouter } from './notifications/router';
 import { requireInstitutionPermission, requireInstitutionSession } from './institution/policy';
 import path from 'path';
 
@@ -67,6 +68,7 @@ app.use('/api/platform-finance', authenticateToken, platformFinanceRouter);
 app.use('/api/institution-finance', authenticateToken, institutionFinanceRouter);
 app.use('/api/live-sessions', authenticateToken, liveRouter);
 app.use('/api/certificates', authenticateToken, certificateRouter);
+app.use('/api/student-notifications', authenticateToken, studentNotificationRouter);
 app.get('/api/public/certificates/:code/verify', verifyCertificate);
 app.get('/api/public/tenant-branding', getPublicTenantBranding);
 app.post('/api/public/leads', createPublicLead);

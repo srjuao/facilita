@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useState } from 'react';
 import { useAuth } from './auth/AuthContext';
 import { Login } from './pages/Login';
 import { Sidebar } from './components/Sidebar';
+import { StudentNotifications } from './components/StudentNotifications';
 import { CourseRecords } from './components/CourseRecords';
 import { ContentManager } from './pages/coord/ContentManager';
 
@@ -143,6 +144,7 @@ export const AppContent: React.FC = () => {
   return (
     <div className="app">
       <Sidebar currentView={activeView} onNavigate={setCurrentView} />
+      {user.role === 'aluno' && <StudentNotifications onNavigate={setCurrentView} />}
       <main className="main">
         {renderView()}
       </main>

@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth';
 import { PaidCourseError } from '../commerce/access';
 import { PlanError } from '../controllers/plan-policy';
 import { examSettings, questionSettings, serializeQuestion, gradeAnswers } from './policy';
+import { notifyPublishedExam } from '../notifications/service';
 
 export const assessmentDb = new PrismaClient();
 export const assessmentRouter = Router();
@@ -121,7 +122,10 @@ assessmentRouter.patch('/exams/:id', handle(async (req, res) => {
     requireVersion(body, exam.version);
     if (typeof body.archived === 'boolean') {
       if (Object.keys(body).some(k => !['archived', 'expectedVersion'].includes(k))) throw new PlanError(400, 'Altere o arquivamento separadamente.');
-      return tx.exam.update({ where: { id: exam.id }, data: { archivedAt: body.archived ? new Date() : null, version: { increment: 1 } } });
+      const updated = await tx.exam.update({ where: { id: exam.id }, data: { archivedAt: body.archived ? new Date() : null, version: { increment: 1 } } });
+      if (body.archived) await tx.studentNotification.deleteMany({ where: { kind: 'exam', sourceId: exam.id } });
+      else if (exam.archivedAt && updated.published) await notifyPublishedExam(tx, { id: updated.id, courseId: updated.courseId, name: updated.nome });
+      return updated;
     }
     if (exam.published || exam.archivedAt) throw new PlanError(409, 'Avaliações publicadas ou arquivadas não podem ser alteradas. Crie uma nova avaliação.');
     if (body.published !== undefined && typeof body.published !== 'boolean') throw new PlanError(400, 'Estado de publicação inválido.');
@@ -130,8 +134,10 @@ assessmentRouter.patch('/exams/:id', handle(async (req, res) => {
       if (!exam.questions.length) throw new PlanError(400, 'Adicione ao menos uma questão antes de publicar.');
       for (const question of exam.questions) questionSettings({ enunciado: question.enunciado, alternatives: serializeQuestion(question, true).alternatives, correctIndex: question.correta, explanation: question.comentario });
     }
-    return tx.exam.update({ where: { id: exam.id }, data: { ...settings, ...(body.published === true ? { published: true } : {}), version: { increment: 1 } } });
-  });
+    const updated = await tx.exam.update({ where: { id: exam.id }, data: { ...settings, ...(body.published === true ? { published: true } : {}), version: { increment: 1 } } });
+    if (body.published === true) await notifyPublishedExam(tx, { id: updated.id, courseId: updated.courseId, name: updated.nome });
+    return updated;
+  }, { timeout: 20000 });
   res.json({ exam: metadata(exam) });
 }));
 assessmentRouter.post('/exams/:id/questions', handle(async (req, res) => {
