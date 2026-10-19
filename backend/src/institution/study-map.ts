@@ -60,10 +60,14 @@ studyMapRouter.get('/courses/:courseId', async (req: InstitutionRequest, res) =>
 studyMapRouter.put('/courses/:courseId', async (req: InstitutionRequest, res) => {
   try {
     const course = await resolveCourse(req, res, true); if (!course) return;
-    const { title, description, nodes, published, version } = req.body;
+    const { title, description, nodes, theme, backgroundColor, cardShape, connectorStyle, published, version } = req.body;
     if (typeof title !== 'string' || title.trim().length < 1 || title.length > 120
       || typeof description !== 'string' || description.length > 1000
       || typeof published !== 'boolean' || !Number.isInteger(version) || version < 0
+      || !['classic', 'playful'].includes(theme)
+      || typeof backgroundColor !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(backgroundColor)
+      || !['rounded', 'soft', 'square'].includes(cardShape)
+      || !['solid', 'dashed'].includes(connectorStyle)
       || !Array.isArray(nodes) || nodes.length > 100 || (published && nodes.length === 0) || !nodes.every(validNode) || !validTree(nodes)) {
       return res.status(400).json({ error: 'Revise o título, os tópicos e as conexões do mapa.' });
     }
@@ -71,9 +75,9 @@ studyMapRouter.put('/courses/:courseId', async (req: InstitutionRequest, res) =>
       const current = await tx.studyMap.findUnique({ where: { courseId: course.id } });
       if ((current?.version || 0) !== version) return null;
       if (current) {
-        const updated = await tx.studyMap.updateMany({ where: { courseId: course.id, version }, data: { title: title.trim(), description: description.trim(), nodes, published, version: { increment: 1 } } });
+        const updated = await tx.studyMap.updateMany({ where: { courseId: course.id, version }, data: { title: title.trim(), description: description.trim(), nodes, theme, backgroundColor, cardShape, connectorStyle, published, version: { increment: 1 } } });
         if (!updated.count) return null;
-      } else await tx.studyMap.create({ data: { courseId: course.id, title: title.trim(), description: description.trim(), nodes, published } });
+      } else await tx.studyMap.create({ data: { courseId: course.id, title: title.trim(), description: description.trim(), nodes, theme, backgroundColor, cardShape, connectorStyle, published } });
       return tx.studyMap.findUnique({ where: { courseId: course.id } });
     });
     if (!map) return res.status(409).json({ error: 'Outra pessoa alterou este mapa. Atualize a página antes de salvar.' });

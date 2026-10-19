@@ -284,6 +284,10 @@ model StudyMap {
   title String @default("")
   description String @default("")
   nodes Json @default("[]")
+  theme String @default("classic")
+  backgroundColor String @default("#fbfcfe")
+  cardShape String @default("rounded")
+  connectorStyle String @default("solid")
   published Boolean @default(false)
   version Int @default(1)
   updatedAt DateTime @updatedAt
