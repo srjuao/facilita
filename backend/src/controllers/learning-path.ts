@@ -7,18 +7,18 @@ export const lessonOrder = { position: 'asc' as const };
 
 export async function learningState(moduleId: string, userId: string, role: string) {
   const [lessons, completions] = await Promise.all([
-    learningDb.lesson.findMany({ where: { moduleId, archivedAt: null }, orderBy: [{ position: 'asc' }, { id: 'asc' }], include: { attachments: { select: { id: true, filename: true, mimeType: true, size: true } } } }),
+    learningDb.lesson.findMany({ where: { moduleId, archivedAt: null }, orderBy: [{ position: 'asc' }, { id: 'asc' }], include: { attachments: { select: { id: true, filename: true, mimeType: true, size: true } }, links: { select: { id: true, title: true, url: true }, orderBy: { createdAt: 'asc' } } } }),
     role === 'aluno' ? learningDb.lessonCompletion.findMany({ where: { userId, lesson: { moduleId, archivedAt: null } }, select: { lessonId: true } }) : Promise.resolve([])
   ]);
   const completed = new Set(completions.map(item => item.lessonId));
   const ids = lessons.map(item => item.id);
   const decorated = lessons.map((lesson, index) => {
     const locked = isLessonLocked(index, ids, completed, role);
-    const { attachments, ...record } = lesson;
+    const { attachments, links, ...record } = lesson;
     const signed = locked ? record : signedLesson(record, userId);
     return { ...signed, videoUrl: locked ? null : signed.videoUrl,
       pdfUrl: locked ? null : lesson.pdfUrl, completed: completed.has(lesson.id), locked,
-      attachments: locked ? [] : attachments.map(file => ({ ...file, downloadUrl: `/api/lessons/${lesson.id}/attachments/${file.id}/download` })) };
+      attachments: locked ? [] : attachments.map(file => ({ ...file, downloadUrl: `/api/lessons/${lesson.id}/attachments/${file.id}/download` })), links: locked ? [] : links };
   });
   return { lessons: decorated, complete: lessons.length > 0 && lessons.every(item => completed.has(item.id)) };
 }

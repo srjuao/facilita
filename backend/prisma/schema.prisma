@@ -551,6 +551,7 @@ model Lesson {
   position Int @default(0)
   completions LessonCompletion[]
   attachments LessonAttachment[]
+  links LessonLink[]
   @@index([moduleId, position])
 }
 
@@ -570,6 +571,16 @@ model LessonAttachment {
   storageName String
   mimeType String
   size Int
+  createdAt DateTime @default(now())
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  @@index([lessonId])
+}
+
+model LessonLink {
+  id String @id @default(cuid())
+  lessonId String
+  title String
+  url String
   createdAt DateTime @default(now())
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   @@index([lessonId])

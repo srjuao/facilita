@@ -8,7 +8,7 @@ import { createStudent, getStudents, getStudentById } from './controllers/studen
 import { getChatHistory, sendMessage } from './controllers/chat.controller';
 import { getExams } from './controllers/exam.controller';
 import { getLessonsByModule, getLessonById, completeLesson } from './controllers/lesson.controller';
-import { coverUpload, attachmentUpload, uploadModuleCover, getModuleCover, uploadLessonAttachment, downloadLessonAttachment } from './controllers/academic-assets';
+import { coverUpload, attachmentUpload, uploadModuleCover, getModuleCover, uploadLessonAttachment, downloadLessonAttachment, createLessonLink, deleteLessonLink } from './controllers/academic-assets';
 import { createCoordCourse, createCoordTeacher, getCoordCourses } from './controllers/coord.controller';
 import { getCoordDashboard } from './controllers/coord-dashboard.controller';
 import { createModule, createLesson } from './controllers/content.controller';
@@ -109,6 +109,8 @@ app.post('/api/modules', authenticateToken, requireInstitutionPermission('conten
 app.post('/api/modules/:id/lessons', authenticateToken, requireInstitutionPermission('content.manage'), featureGate('videoAulas'), authorizeRoles('coord', 'professor'), createLesson);
 app.post('/api/modules/:id/cover', authenticateToken, requireInstitutionPermission('content.manage'), authorizeRoles('coord', 'professor'), coverUpload.single('file'), uploadModuleCover);
 app.post('/api/lessons/:id/attachments', authenticateToken, requireInstitutionPermission('content.manage'), authorizeRoles('coord', 'professor'), attachmentUpload.single('file'), uploadLessonAttachment);
+app.post('/api/lessons/:id/links', authenticateToken, requireInstitutionPermission('content.manage'), authorizeRoles('coord', 'professor'), createLessonLink);
+app.delete('/api/lessons/:id/links/:linkId', authenticateToken, requireInstitutionPermission('content.manage'), authorizeRoles('coord', 'professor'), deleteLessonLink);
 app.get('/api/lessons/:id/attachments/:attachmentId/download', authenticateToken, downloadLessonAttachment);
 
 // Lessons

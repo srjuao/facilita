@@ -56,6 +56,29 @@ export async function uploadLessonAttachment(req: AuthRequest, res: Response) {
   } catch { return res.status(503).json({ error: 'Não foi possível anexar o arquivo.' }); }
   finally { if (file && res.statusCode !== 201) fs.promises.unlink(file.path).catch(() => undefined); }
 }
+export async function createLessonLink(req: AuthRequest, res: Response) {
+  try {
+    const lesson = await db.lesson.findFirst({ where: { id: req.params.id, archivedAt: null }, include: { module: true } });
+    if (!lesson || !await editor(req, lesson.module.courseId)) return res.status(403).json({ error: 'Sem acesso a esta aula.' });
+    const title = typeof req.body?.title === 'string' ? req.body.title.trim() : '';
+    const rawUrl = typeof req.body?.url === 'string' ? req.body.url.trim() : '';
+    if (!title || title.length > 160 || !rawUrl || rawUrl.length > 2048) return res.status(400).json({ error: 'Informe um título e um link válidos.' });
+    let url: URL;
+    try { url = new URL(rawUrl); } catch { return res.status(400).json({ error: 'Informe um endereço HTTPS válido.' }); }
+    if (url.protocol !== 'https:' || !url.hostname || url.username || url.password) return res.status(400).json({ error: 'O material deve usar um endereço HTTPS válido.' });
+    const link = await db.lessonLink.create({ data: { lessonId: lesson.id, title, url: url.href } });
+    return res.status(201).json({ link });
+  } catch { return res.status(503).json({ error: 'Não foi possível salvar o link.' }); }
+}
+export async function deleteLessonLink(req: AuthRequest, res: Response) {
+  try {
+    const link = await db.lessonLink.findFirst({ where: { id: req.params.linkId, lessonId: req.params.id }, include: { lesson: { include: { module: true } } } });
+    if (!link) return res.sendStatus(404);
+    if (!await editor(req, link.lesson.module.courseId)) return res.sendStatus(403);
+    await db.lessonLink.delete({ where: { id: link.id } });
+    return res.sendStatus(204);
+  } catch { return res.status(503).json({ error: 'Não foi possível remover o link.' }); }
+}
 export async function downloadLessonAttachment(req: AuthRequest, res: Response) {
   try {
     const account = await currentAccess(req);
