@@ -80,6 +80,7 @@ export const AppContent: React.FC = () => {
 
   const renderView = () => {
     if (activeView === 'co-staff') return <StaffAccounts />;
+    if (activeView === 'co-study-map' || activeView === 'al-plano') return <StudentStudyPlan />;
     if (activeView === 'co-live' || activeView === 'al-live') return <Suspense fallback={<p role="status" style={{ padding: 24 }}>Abrindo aulas ao vivo…</p>}><CoordLive /></Suspense>;
     if (activeView === 'co-finance' || activeView === 'al-finance') return <InstitutionFinancial />;
     if (activeView === 'co-sales' || activeView === 'al-store') return <PaidCourses onOpenCourse={courseId => { setSelectedPaidCourseId(courseId); setCurrentView('al-paid-course'); }} />;

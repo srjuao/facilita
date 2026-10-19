@@ -275,6 +275,18 @@ model Course {
   accessEvents CourseAccessEvent[]
   accessRequests CourseAccessRequest[]
   liveSessions LiveSession[]
+  studyMap StudyMap?
+}
+
+model StudyMap {
+  courseId String @id
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title String @default("")
+  description String @default("")
+  nodes Json @default("[]")
+  published Boolean @default(false)
+  version Int @default(1)
+  updatedAt DateTime @updatedAt
 }
 
 model User {
