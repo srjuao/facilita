@@ -63,14 +63,14 @@ export const Login: React.FC<{ superAdmin?: boolean }> = ({ superAdmin = false }
           <p className="lead" style={{ whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>
             {brand?.loginDescription || (superAdmin ? 'Gerencie faculdades, acessos, domínios e identidade de cada unidade com segurança e contexto.' : 'Uma plataforma para a instituição, coordenação e alunos seguirem juntos — com clareza, contexto e evolução em cada etapa.')}
           </p>
-          <div className="brand-list">
+          {!brand && <div className="brand-list">
             {(superAdmin ? ['Faculdades', 'Acessos', 'Domínios', 'Identidade'] : ['Cursos', 'Professores', 'Alunos']).map((c) => (
               <span key={c}>{c}</span>
             ))}
-          </div>
+          </div>}
         </div>
-        <div style={{ fontSize: '12px', color: 'var(--ink-2)' }}>
-          Aplicação Full-Stack TypeScript · FacilitaEstudos 2026
+        <div className="login-art-footer">
+          {brand ? `Um espaço da ${brand.nome} · Facilita Estudos` : 'Facilita Estudos'}
         </div>
       </div>
 
