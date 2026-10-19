@@ -105,3 +105,6 @@
 .login-brand-spinner{width:20px;height:20px;border:2px solid #d6e2e1;border-top-color:#0c9f8f;border-radius:50%;animation:login-brand-spin .7s linear infinite}
 @keyframes login-brand-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.login-brand-spinner{animation:none}}
+.app-load-error{min-height:100vh;display:grid;place-items:center;padding:24px;background:var(--canvas,#f5f7f8);color:var(--ink,#172b43)}
+.app-load-error section{width:min(100%,460px);padding:32px;border:1px solid var(--line,#dce5e9);border-radius:18px;background:#fff;box-shadow:0 18px 48px #14294212}
+.app-load-error h1{font-size:24px;line-height:1.2;margin:0 0 12px}.app-load-error p{color:var(--muted,#667589);line-height:1.6;margin:0 0 22px}
