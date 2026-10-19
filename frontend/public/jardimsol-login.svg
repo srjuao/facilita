@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1600" preserveAspectRatio="xMidYMid slice">
+  <defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#3E7884"/><stop offset=".55" stop-color="#4FA0A4"/><stop offset="1" stop-color="#E7BA79"/></linearGradient><linearGradient id="ground" x2="0" y2="1"><stop stop-color="#F4C377"/><stop offset="1" stop-color="#DD8C5F"/></linearGradient></defs>
+  <path fill="url(#sky)" d="M0 0h1200v1600H0z"/>
+  <circle cx="1000" cy="265" r="154" fill="#FFDB82" opacity=".95"/>
+  <g fill="#FFF3D9" opacity=".7"><ellipse cx="800" cy="350" rx="112" ry="31"/><circle cx="747" cy="333" r="39"/><circle cx="833" cy="329" r="45"/><ellipse cx="1010" cy="450" rx="91" ry="26"/><circle cx="978" cy="430" r="35"/></g>
+  <path d="M0 1130c195-102 363-106 550-46 211 69 443 13 650-106v622H0z" fill="#6F9B70"/>
+  <path d="M0 1290c240-97 475-99 670-22 199 78 367 63 530-30v362H0z" fill="url(#ground)"/>
+  <g transform="translate(385 850)"><path d="M0 305 94 0 180 306" fill="#E87358"/><path d="M98 0 205 306h146L220 0z" fill="#F5CE86"/><path d="M212 0 355 306h146L335 0z" fill="#F3EFE2"/><path d="M96 0 188 0 322 306H180z" fill="#F8A77A" opacity=".75"/><rect y="304" width="507" height="25" rx="12" fill="#5E6670"/></g>
+  <g transform="translate(190 1195) rotate(-8)"><rect width="455" height="75" rx="12" fill="#F0E0B4"/><rect x="19" y="18" width="419" height="38" rx="5" fill="#F8F0DB"/><rect y="74" width="455" height="22" rx="7" fill="#D2694D"/><rect y="96" width="455" height="70" rx="11" fill="#FFF4DF"/><rect x="22" y="115" width="411" height="32" rx="4" fill="#F2E6CF"/><rect y="165" width="455" height="19" rx="6" fill="#507F86"/></g>
+  <g fill="#F8E9B2"><path d="m865 752 11 30 30 11-30 11-11 30-11-30-30-11 30-11z"/><path d="m286 770 7 18 18 7-18 7-7 18-7-18-18-7 18-7z"/></g>
+  <g fill="#416D69"><path d="M945 1335c-5-101 4-180 19-248" fill="none" stroke="#416D69" stroke-width="12"/><ellipse cx="916" cy="1152" rx="49" ry="21" transform="rotate(32 916 1152)"/><ellipse cx="1012" cy="1116" rx="49" ry="21" transform="rotate(-36 1012 1116)"/><ellipse cx="927" cy="1230" rx="50" ry="21" transform="rotate(36 927 1230)"/></g>
+  <g fill="#F2D787"><circle cx="816" cy="1408" r="17"/><circle cx="852" cy="1372" r="10"/><circle cx="1036" cy="1406" r="14"/></g>
+</svg>

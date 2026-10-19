@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Jardim do Sol">
+  <rect width="64" height="64" rx="16" fill="#B84E29"/>
+  <circle cx="32" cy="32" r="16" fill="#FFD476"/>
+  <g stroke="#FFD476" stroke-width="3" stroke-linecap="round"><path d="M32 6v6M32 52v6M6 32h6M52 32h6M14 14l4 4M46 46l4 4M50 14l-4 4M18 46l-4 4"/></g>
+  <path d="M23 36c4 6 13 6 18 0" fill="none" stroke="#8D4529" stroke-width="2.5" stroke-linecap="round"/><circle cx="27" cy="27" r="1.5" fill="#8D4529"/><circle cx="37" cy="27" r="1.5" fill="#8D4529"/>
+</svg>
