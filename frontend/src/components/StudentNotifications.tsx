@@ -22,9 +22,12 @@ export const StudentNotifications: React.FC<{ onNavigate: (view: string) => void
   const root = useRef<HTMLDivElement>(null);
   const bell = useRef<HTMLButtonElement>(null);
   const mounted = useRef(true);
+  const refreshing = useRef(false);
   const storageKey = `facilita-notification-popup:${userId}`;
 
   const refresh = useCallback(async () => {
+    if (refreshing.current) return;
+    refreshing.current = true;
     try {
       const response = await api.get<Feed>('/student-notifications');
       if (!mounted.current) return;
@@ -38,6 +41,7 @@ export const StudentNotifications: React.FC<{ onNavigate: (view: string) => void
         try { sessionStorage.setItem(storageKey, JSON.stringify([...new Set([...shown, ...newItems.map(item => item.id)])].slice(-200))); } catch { /* Keep the alert visible without storage. */ }
       }
     } catch { if (mounted.current) setError('Não foi possível atualizar as notificações.'); }
+    finally { refreshing.current = false; }
   }, [storageKey]);
 
   async function loadMore() {
@@ -53,7 +57,7 @@ export const StudentNotifications: React.FC<{ onNavigate: (view: string) => void
   useEffect(() => {
     mounted.current = true;
     void refresh();
-    const interval = window.setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, 60000);
+    const interval = window.setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, 5000);
     const onFocus = () => { void refresh(); };
     const onVisibility = () => { if (document.visibilityState === 'visible') void refresh(); };
     window.addEventListener('focus', onFocus); document.addEventListener('visibilitychange', onVisibility);

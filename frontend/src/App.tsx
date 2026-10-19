@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { useAuth } from './auth/AuthContext';
 import { Login } from './pages/Login';
 import { Sidebar } from './components/Sidebar';
@@ -46,13 +46,37 @@ import { SuperAdminAccount } from './pages/superadmin/SuperAdminAccount';
 
 const CoordLive = lazy(() => import('./pages/coord/CoordLive').then(module => ({ default: module.CoordLive })));
 
+const navigationStorageKey = 'facilita-current-screen';
+type SavedNavigation = { userId: string; view: string; lessonId: string; paidCourseId: string; finalExamId: string; lessonReturnView: string };
+function readNavigation(): SavedNavigation | null {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(navigationStorageKey) || 'null');
+    return value && typeof value.userId === 'string' && typeof value.view === 'string' ? value : null;
+  } catch { return null; }
+}
+
 export const AppContent: React.FC = () => {
   const { user, loading, logout } = useAuth();
-  const [currentView, setCurrentView] = useState<string>('default');
-  const [selectedLessonId, setSelectedLessonId] = useState<string>('');
-  const [selectedPaidCourseId, setSelectedPaidCourseId] = useState('');
-  const [selectedFinalExamId, setSelectedFinalExamId] = useState('');
-  const [lessonReturnView, setLessonReturnView] = useState('al-materias');
+  const [savedNavigation] = useState(readNavigation);
+  const [navigationOwner, setNavigationOwner] = useState(savedNavigation?.userId || '');
+  const [currentView, setCurrentView] = useState<string>(savedNavigation?.view || 'default');
+  const [selectedLessonId, setSelectedLessonId] = useState<string>(savedNavigation?.lessonId || '');
+  const [selectedPaidCourseId, setSelectedPaidCourseId] = useState(savedNavigation?.paidCourseId || '');
+  const [selectedFinalExamId, setSelectedFinalExamId] = useState(savedNavigation?.finalExamId || '');
+  const [lessonReturnView, setLessonReturnView] = useState(savedNavigation?.lessonReturnView || 'al-materias');
+
+  useEffect(() => {
+    if (!user) return;
+    // Navigation belongs to this account and this institution, never another login in the same tab.
+    if (navigationOwner !== `${user.id}:${user.tenantId || ''}`) {
+      setCurrentView('default'); setSelectedLessonId(''); setSelectedPaidCourseId(''); setSelectedFinalExamId('');
+      setNavigationOwner(`${user.id}:${user.tenantId || ''}`);
+    }
+  }, [user?.id, user?.tenantId]);
+  useEffect(() => {
+    if (!user || navigationOwner !== `${user.id}:${user.tenantId || ''}`) return;
+    try { sessionStorage.setItem(navigationStorageKey, JSON.stringify({ userId: `${user.id}:${user.tenantId || ''}`, view: currentView, lessonId: selectedLessonId, paidCourseId: selectedPaidCourseId, finalExamId: selectedFinalExamId, lessonReturnView })); } catch { /* Navigation still works if storage is unavailable. */ }
+  }, [user?.id, user?.tenantId, navigationOwner, currentView, selectedLessonId, selectedPaidCourseId, selectedFinalExamId, lessonReturnView]);
 
   if (loading) {
     return <div style={{ padding: '40px', textAlign: 'center' }}>Carregando FacilitaEstudos...</div>;
@@ -74,9 +98,10 @@ export const AppContent: React.FC = () => {
   };
 
   // Roteamento padrão por papel caso não haja view selecionada
-  const activeView = currentView === 'default'
+  const restoredView = navigationOwner === `${user.id}:${user.tenantId || ''}` ? currentView : 'default';
+  const activeView = restoredView === 'default'
     ? user.role === 'superadmin' ? 'sa-overview' : user.role === 'coord' ? 'co-dash' : ['professor', 'staff'].includes(user.role) ? 'co-notices' : 'al-inicio'
-    : currentView;
+    : restoredView;
 
   const renderView = () => {
     if (activeView === 'co-staff') return <StaffAccounts />;
