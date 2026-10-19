@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { TopBar } from '../../components/TopBar';
+import { useAuth } from '../../auth/AuthContext';
 import api from '../../api/client';
 import { Subscription, money, suggestedUnit } from './plans';
 import './SuperAdminPlans.css';
@@ -24,6 +25,7 @@ const cycleDates = (competence: string, closingDay: number, dueDay: number) => {
 };
 
 export const SuperAdminFinancial: React.FC<{ onNavigate: (view: string) => void }> = ({ onNavigate }) => {
+  const { user } = useAuth();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [tenants, setTenants] = useState<Subscription[]>([]);
@@ -93,9 +95,9 @@ export const SuperAdminFinancial: React.FC<{ onNavigate: (view: string) => void 
     <header className="plans-section-heading"><div><p className="eyebrow">FINANCEIRO · FACILITA ESTUDOS</p><h1>Contratos e cobranças.</h1><p className="muted">Mínimo contratado garantido. Excedentes calculados por aluno com conta ativa.</p></div><button className="ghost" disabled={loading || busy} onClick={() => { setError(''); void load(); }}>Atualizar</button></header>
     <div className="pf-explainer">Emissão interna de faturas. Sem registro bancário, boleto pagável ou envio automático. Os pagamentos são conferidos e registrados manualmente.</div>
     {error && <div role="alert" className="inline-form-error">{error}</div>}{success && <p className="pf-success" role="status">{success}</p>}
-    <nav className="pf-tabs" aria-label="Seções do financeiro"><button aria-current={tab === 'contracts' ? 'page' : undefined} onClick={() => setTab('contracts')}>Contratos <span>{contracts.length}</span></button><button aria-current={tab === 'invoices' ? 'page' : undefined} onClick={() => setTab('invoices')}>Cobranças</button><button onClick={() => onNavigate('sa-plans')}>Planos e recursos ↗</button></nav>
+    <nav className="pf-tabs" aria-label="Seções do financeiro"><button aria-current={tab === 'contracts' ? 'page' : undefined} onClick={() => setTab('contracts')}>Contratos <span>{contracts.length}</span></button><button aria-current={tab === 'invoices' ? 'page' : undefined} onClick={() => setTab('invoices')}>Cobranças</button>{user?.role === 'superadmin' && <button onClick={() => onNavigate('sa-plans')}>Planos e recursos ↗</button>}</nav>
     {loading && <p role="status">Carregando financeiro…</p>}
-    {!loading && pending.length > 0 && <section className="pf-pending" aria-labelledby="pf-pending-title"><div><h2 id="pf-pending-title">Instituições aguardando cobrança <span>{pending.length}</span></h2><p>O plano e as condições de pagamento precisam estar vinculados antes de emitir a primeira fatura.</p></div><ul>{pending.map(item => <li key={item.tenantId}><strong>{item.nome}</strong><span>{item.plan ? 'Plano vinculado · falta confirmar mínimo, fechamento, vencimento e dados de cobrança' : 'Sem plano vinculado'}</span></li>)}</ul><button className="primary" onClick={() => onNavigate('sa-plans')}>Configurar planos e cobrança</button></section>}
+    {!loading && pending.length > 0 && <section className="pf-pending" aria-labelledby="pf-pending-title"><div><h2 id="pf-pending-title">Instituições aguardando cobrança <span>{pending.length}</span></h2><p>O plano e as condições de pagamento precisam estar vinculados antes de emitir a primeira fatura.</p></div><ul>{pending.map(item => <li key={item.tenantId}><strong>{item.nome}</strong><span>{item.plan ? 'Plano vinculado · falta confirmar mínimo, fechamento, vencimento e dados de cobrança' : 'Sem plano vinculado'}</span></li>)}</ul>{user?.role === 'superadmin' && <button className="primary" onClick={() => onNavigate('sa-plans')}>Configurar planos e cobrança</button>}</section>}
     {tab === 'contracts' && <>
       <div className="pf-heading"><div><h2>Contratos por instituição</h2><p>O preço e a franquia são definidos aqui. Os recursos de acesso continuam no plano.</p></div><button className="primary" disabled={busy || loading} onClick={() => openEditor()}>Novo contrato</button></div>
       {editing && <form className="pf-editor" onSubmit={saveContract}><h2>{editing.version === null ? 'Cadastrar contrato' : 'Editar contrato'}</h2><fieldset disabled={busy}>

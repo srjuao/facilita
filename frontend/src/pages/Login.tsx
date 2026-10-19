@@ -53,7 +53,7 @@ export const Login: React.FC<{ superAdmin?: boolean }> = ({ superAdmin = false }
           <div>
             {brand?.logoUrl ? <img className="tenant-login-logo" src={brand.logoUrl} alt={`Logotipo ${brand.nome}`} /> : <WordMark />}
             <div style={{ fontSize: '12px', letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,.78)', marginTop: '2px' }}>
-              {brand ? brand.nome : superAdmin ? 'Painel de superadmin' : 'Plataforma multi-instituição'}
+              {brand ? brand.nome : superAdmin ? 'Equipe Facilita' : 'Plataforma multi-instituição'}
             </div>
           </div>
         </div>
@@ -76,7 +76,7 @@ export const Login: React.FC<{ superAdmin?: boolean }> = ({ superAdmin = false }
 
       <div className="login-form">
         <form className="login-card" onSubmit={handleSubmit}>
-          <div className="eyebrow">{superAdmin ? 'Painel de superadmin' : 'Entrar'}</div>
+          <div className="eyebrow">{superAdmin ? 'Administração da plataforma' : 'Entrar'}</div>
           <h2 style={{ marginTop: '6px' }}>{superAdmin ? 'Acesse a operação' : 'Bem-vindo de volta'}</h2>
           <p className="login-subtitle">{superAdmin ? 'Use suas credenciais exclusivas para gerenciar a plataforma.' : 'Acesse sua instituição para continuar.'}</p>
           

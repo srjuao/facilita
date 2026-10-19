@@ -43,6 +43,7 @@ import { SuperAdminLogin } from './pages/superadmin/SuperAdminLogin';
 import { SuperAdminPlans } from './pages/superadmin/SuperAdminPlans';
 import { SuperAdminLeads } from './pages/superadmin/SuperAdminLeads';
 import { SuperAdminAccount } from './pages/superadmin/SuperAdminAccount';
+import { PlatformTeam, PlatformSupport, PlatformAudit, InstitutionSupport } from './pages/platform/PlatformWorkspace';
 
 const CoordLive = lazy(() => import('./pages/coord/CoordLive').then(module => ({ default: module.CoordLive })));
 
@@ -84,8 +85,9 @@ export const AppContent: React.FC = () => {
 
   const isSuperAdminPortal = window.location.hostname === 'app.facilitaestudos.com.br';
   if (!user) return isSuperAdminPortal ? <SuperAdminLogin /> : <Login />;
-  if (isSuperAdminPortal && user.role !== 'superadmin') return <main className="portal-denied"><ShieldMessage onExit={logout} /></main>;
-  if (!isSuperAdminPortal && user.role === 'superadmin') return <SuperAdminLogin />;
+  const platformUser = user.role === 'superadmin' || user.role === 'platform_staff';
+  if (isSuperAdminPortal && !platformUser) return <main className="portal-denied"><ShieldMessage onExit={logout} /></main>;
+  if (!isSuperAdminPortal && platformUser) return <SuperAdminLogin />;
 
   const handleOpenLesson = (lessonId: string) => {
     setLessonReturnView(activeView === 'al-paid-course' ? 'al-paid-course' : 'al-materias');
@@ -100,11 +102,15 @@ export const AppContent: React.FC = () => {
   // Roteamento padrão por papel caso não haja view selecionada
   const restoredView = navigationOwner === `${user.id}:${user.tenantId || ''}` ? currentView : 'default';
   const activeView = restoredView === 'default'
-    ? user.role === 'superadmin' ? 'sa-overview' : user.role === 'coord' ? 'co-dash' : ['professor', 'staff'].includes(user.role) ? 'co-notices' : 'al-inicio'
+    ? user.role === 'superadmin' ? 'sa-overview' : user.role === 'platform_staff' ? user.permissions?.includes('platform.support') ? 'sa-support' : user.permissions?.includes('platform.finance') ? 'sa-fin' : 'sa-leads' : user.role === 'coord' ? 'co-dash' : ['professor', 'staff'].includes(user.role) ? 'co-notices' : 'al-inicio'
     : restoredView;
+
+  const platformAccess: Record<string, string> = { 'sa-support': 'platform.support', 'sa-fin': 'platform.finance', 'sa-leads': 'platform.sales' };
+  if (user.role === 'platform_staff' && activeView !== 'sa-account' && (!platformAccess[activeView] || !user.permissions?.includes(platformAccess[activeView]))) return <div className="app"><Sidebar currentView={activeView} onNavigate={setCurrentView} /><main className="main"><section className="unit-setup"><div className="card"><h1>Acesso não autorizado</h1><p>Esta área não faz parte das permissões da sua conta.</p><button className="ghost" onClick={() => setCurrentView('default')}>Abrir minha área</button></div></section></main></div>;
 
   const renderView = () => {
     if (activeView === 'co-staff') return <StaffAccounts />;
+    if (activeView === 'co-support') return <InstitutionSupport />;
     if (activeView === 'co-study-map' || activeView === 'al-plano') return <StudentStudyPlan />;
     if (activeView === 'co-live' || activeView === 'al-live') return <Suspense fallback={<p role="status" style={{ padding: 24 }}>Abrindo aulas ao vivo…</p>}><CoordLive /></Suspense>;
     if (activeView === 'co-finance' || activeView === 'al-finance') return <InstitutionFinancial />;
@@ -114,7 +120,7 @@ export const AppContent: React.FC = () => {
     const sections = { 'co-notices': 'notices', 'co-subs': 'classes', 'co-team': 'team', 'co-chat': 'chat', 'al-notices': 'notices', 'al-classes': 'classes', 'al-chat': 'chat' } as const;
     if (activeView in sections) return <InstitutionWorkspace section={sections[activeView as keyof typeof sections]} />;
     if (['professor', 'staff'].includes(user.role) && ((activeView === 'co-gestao' && !user.permissions?.includes('content.manage')) || (activeView === 'co-alunos' && !user.permissions?.includes('students.manage')))) return <section className="unit-setup"><div className="card"><h1>Acesso não autorizado</h1><p>A coordenação ainda não liberou esta função para sua conta.</p></div></section>;
-    const plan = user.role !== 'superadmin' ? user.tenant?.plan : null;
+    const plan = !platformUser ? user.tenant?.plan : null;
     if ((activeView === 'al-ia' && plan?.ia === false) || (['al-provas', 'co-provas'].includes(activeView) && plan?.provas === false) || (activeView === 'al-aula' && plan?.videoAulas === false)) return <section className="unit-setup"><div className="card"><h1>Recurso não incluído no plano</h1><p>Consulte a coordenação da instituição sobre os recursos contratados.</p><button className="ghost" onClick={() => setCurrentView('default')}>Voltar ao início</button></div></section>;
     if (['al-provas', 'co-provas'].includes(activeView)) return <Assessments initialExamId={activeView === 'al-provas' ? selectedFinalExamId : undefined} />;
     const records: Record<string, { title: string; kind: 'modules' | 'exams' | 'alerts' | 'live' | 'empty' }> = {
@@ -161,6 +167,9 @@ export const AppContent: React.FC = () => {
       case 'sa-plans': return <SuperAdminPlans />;
       case 'sa-leads': return <SuperAdminLeads />;
       case 'sa-account': return <SuperAdminAccount />;
+      case 'sa-team': return <PlatformTeam />;
+      case 'sa-support': return <PlatformSupport />;
+      case 'sa-audit': return <PlatformAudit />;
 
       default:
         return <StudentHome onNavigate={setCurrentView} />;
@@ -182,4 +191,4 @@ export const App: React.FC = () => {
   return <AppContent />;
 };
 
-const ShieldMessage: React.FC<{ onExit: () => void }> = ({ onExit }) => <section className="portal-denied-card"><p className="eyebrow">ACESSO RESTRITO</p><h1>Este é o painel de superadmin.</h1><p className="muted">Use uma conta de superadmin para continuar.</p><button className="ghost" onClick={onExit}>Sair</button></section>;
+const ShieldMessage: React.FC<{ onExit: () => void }> = ({ onExit }) => <section className="portal-denied-card"><p className="eyebrow">ACESSO RESTRITO</p><h1>Este é o painel da plataforma.</h1><p className="muted">Use uma conta autorizada da equipe Facilita para continuar.</p><button className="ghost" onClick={onExit}>Sair</button></section>;

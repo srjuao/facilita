@@ -71,6 +71,7 @@ model Tenant {
   certificateTemplates CertificateTemplate[]
   certificateIssues CertificateIssue[]
   studentNotifications StudentNotification[]
+  supportTickets PlatformTicket[]
 }
 
 model TuitionSettings {
@@ -301,7 +302,7 @@ model User {
   password  String
   nome      String
   papel     String
-  role      String   // superadmin, coord, aluno
+  role      String   // superadmin, platform_staff, coord, professor, aluno, staff
   photo     Int      @default(0)
   tenantId  String?
   tenant    Tenant?  @relation(fields: [tenantId], references: [id])
@@ -325,6 +326,48 @@ model User {
   lessonCompletions LessonCompletion[]
   certificateIssues CertificateIssue[]
   studentNotifications StudentNotification[]
+  openedSupportTickets PlatformTicket[] @relation("TicketRequester")
+  supportMessages PlatformTicketMessage[]
+}
+
+model PlatformTicket {
+  id String @id @default(cuid())
+  tenantId String
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  openedById String
+  openedBy User @relation("TicketRequester", fields: [openedById], references: [id], onDelete: Restrict)
+  subject String
+  status String @default("OPEN")
+  priority String @default("NORMAL")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages PlatformTicketMessage[]
+  @@index([tenantId, createdAt])
+  @@index([status, updatedAt])
+}
+
+model PlatformTicketMessage {
+  id String @id @default(cuid())
+  ticketId String
+  ticket PlatformTicket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  authorId String
+  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  body String
+  createdAt DateTime @default(now())
+  @@index([ticketId, createdAt])
+}
+
+model PlatformAuditLog {
+  id String @id @default(cuid())
+  actorId String
+  actorName String
+  actorRole String
+  method String
+  path String
+  status Int
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+  @@index([actorId, createdAt])
 }
 
 model StudentNotification {

@@ -29,6 +29,7 @@ import { liveRouter } from './live/router';
 import { certificateRouter, verifyCertificate } from './certificates/router';
 import { studentNotificationRouter } from './notifications/router';
 import { studyMapRouter } from './institution/study-map';
+import { institutionSupportRouter, platformRouter } from './platform/router';
 import { requireInstitutionPermission, requireInstitutionSession } from './institution/policy';
 import path from 'path';
 
@@ -58,8 +59,8 @@ app.get('/api/modules/:id/cover', getModuleCover);
 // Auth
 app.post('/api/auth/login', login);
 app.get('/api/auth/me', authenticateToken, getMe);
-app.patch('/api/auth/password', authenticateToken, requireInstitutionSession, authorizeRoles('superadmin'), changePassword);
-app.patch('/api/auth/profile', authenticateToken, requireInstitutionSession, authorizeRoles('superadmin'), updateProfile);
+app.patch('/api/auth/password', authenticateToken, authorizeRoles('superadmin', 'platform_staff'), changePassword);
+app.patch('/api/auth/profile', authenticateToken, authorizeRoles('superadmin', 'platform_staff'), updateProfile);
 app.use('/api/institution', authenticateToken, institutionRouter);
 app.use('/api/institution-commerce', authenticateToken, commerceRouter);
 app.use('/api/institution-staff', authenticateToken, staffRouter);
@@ -71,18 +72,20 @@ app.use('/api/live-sessions', authenticateToken, liveRouter);
 app.use('/api/certificates', authenticateToken, certificateRouter);
 app.use('/api/student-notifications', authenticateToken, studentNotificationRouter);
 app.use('/api/study-maps', authenticateToken, studyMapRouter);
+app.use('/api/platform', authenticateToken, platformRouter);
+app.use('/api/support-tickets', authenticateToken, institutionSupportRouter);
 app.get('/api/public/certificates/:code/verify', verifyCertificate);
 app.get('/api/public/tenant-branding', getPublicTenantBranding);
 app.post('/api/public/leads', createPublicLead);
 app.get('/api/public/pricing', getPublicPricing);
 app.get('/api/pricing-setting', authenticateToken, authorizeRoles('superadmin'), getPricingSetting);
 app.patch('/api/pricing-setting', authenticateToken, authorizeRoles('superadmin'), updatePricingSetting);
-app.get('/api/leads', authenticateToken, authorizeRoles('superadmin'), getLeads);
-app.patch('/api/leads/:id', authenticateToken, authorizeRoles('superadmin'), updateLead);
+app.get('/api/leads', authenticateToken, authorizeRoles('superadmin', 'platform_staff'), getLeads);
+app.patch('/api/leads/:id', authenticateToken, authorizeRoles('superadmin', 'platform_staff'), updateLead);
 app.get('/api/plans', authenticateToken, authorizeRoles('superadmin'), getPlans);
 app.post('/api/plans', authenticateToken, authorizeRoles('superadmin'), createPlan);
 app.patch('/api/plans/:id/status', authenticateToken, authorizeRoles('superadmin'), updatePlanStatus);
-app.get('/api/subscriptions', authenticateToken, authorizeRoles('superadmin'), getSubscriptions);
+app.get('/api/subscriptions', authenticateToken, authorizeRoles('superadmin', 'platform_staff'), getSubscriptions);
 app.patch('/api/tenants/:id/plan', authenticateToken, authorizeRoles('superadmin'), assignPlan);
 
 // Uploads

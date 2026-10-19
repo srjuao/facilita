@@ -18,7 +18,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [loading, setLoading] = useState<boolean>(true);
   useEffect(() => {
-    const tenant = user?.role !== 'superadmin' ? user?.tenant : undefined;
+    const tenant = user?.role !== 'superadmin' && user?.role !== 'platform_staff' ? user?.tenant : undefined;
     if (!tenant) return;
     document.title = tenant.browserTitle || `${tenant.nome} | Facilita Estudos`;
     let icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');

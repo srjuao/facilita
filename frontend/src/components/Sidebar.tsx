@@ -16,7 +16,9 @@ import {
   MessageSquare, 
   User, 
   LogOut,
-  ShoppingBag
+  ShoppingBag,
+  Headset,
+  ScrollText
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -67,11 +69,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     superadmin: [
       { sec: 'Plataforma' },
       { id: 'sa-overview', label: 'Visão geral', icon: <LayoutDashboard size={18} /> },
-      { id: 'sa-leads', label: 'Leads e contatos', icon: <MessageSquare size={18} /> },
-      { id: 'sa-tenants', label: 'Faculdades', icon: <Building2 size={18} /> },
+      { id: 'sa-leads', label: 'Comercial', icon: <MessageSquare size={18} /> },
+      { id: 'sa-support', label: 'Suporte', icon: <Headset size={18} /> },
+      { id: 'sa-tenants', label: 'Instituições', icon: <Building2 size={18} /> },
       { id: 'sa-courses', label: 'Cursos', icon: <BookOpen size={18} /> },
       { id: 'sa-plans', label: 'Planos e assinaturas', icon: <Layers size={18} /> },
-      { id: 'sa-fin', label: 'Financeiro', icon: <DollarSign size={18} /> },
+      { id: 'sa-fin', label: 'Financeiro Facilita', icon: <DollarSign size={18} /> },
+      { sec: 'Equipe e controle' },
+      { id: 'sa-team', label: 'Equipe Facilita', icon: <Users size={18} /> },
+      { id: 'sa-audit', label: 'Registro de ações', icon: <ScrollText size={18} /> },
+      { id: 'sa-account', label: 'Minha conta', icon: <User size={18} /> },
+    ],
+    platform_staff: [
+      { sec: 'Equipe Facilita' },
+      ...(user.permissions?.includes('platform.support') ? [{ id: 'sa-support', label: 'Suporte', icon: <Headset size={18} /> }] : []),
+      ...(user.permissions?.includes('platform.sales') ? [{ id: 'sa-leads', label: 'Comercial', icon: <MessageSquare size={18} /> }] : []),
+      ...(user.permissions?.includes('platform.finance') ? [{ id: 'sa-fin', label: 'Financeiro', icon: <DollarSign size={18} /> }] : []),
       { id: 'sa-account', label: 'Minha conta', icon: <User size={18} /> },
     ],
     coord: [
@@ -92,6 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
       { id: 'co-sales', label: 'Cursos pagos e liberações', icon: <ShoppingBag size={18} /> },
       { id: 'co-staff', label: 'Funcionários', icon: <Users size={18} /> },
       { id: 'co-finance', label: 'Financeiro', icon: <DollarSign size={18} /> },
+      { id: 'co-support', label: 'Suporte Facilita', icon: <Headset size={18} /> },
     ],
     professor: [
       { sec: 'Meu curso' },
@@ -107,6 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     ],
     staff: [
       { sec: 'Equipe da instituição' },
+      ...(user.permissions?.includes('support.manage') ? [{ id: 'co-support', label: 'Suporte Facilita', icon: <Headset size={18} /> }] : []),
       ...(user.permissions?.includes('finance.manage') ? [{ id: 'co-finance', label: 'Financeiro', icon: <DollarSign size={18} /> }] : []),
       { id: 'co-notices', label: 'Avisos', icon: <FileText size={18} /> },
       { id: 'co-chat', label: 'Chat interno', icon: <MessageSquare size={18} /> },
@@ -133,10 +148,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     ]
   };
 
-  const plan = role !== 'superadmin' ? user.tenant?.plan : null;
+  const plan = !['superadmin', 'platform_staff'].includes(role) ? user.tenant?.plan : null;
   const navItems = (NAVS[role] || NAVS.aluno).filter(item => !((item.id === 'al-ia' && plan?.ia === false) || (['al-provas', 'co-provas'].includes(item.id || '') && plan?.provas === false) || (['professor', 'staff'].includes(role) && ((item.id === 'co-gestao' && !user.permissions?.includes('content.manage')) || (item.id === 'co-alunos' && !user.permissions?.includes('students.manage')) || (item.id === 'co-provas' && !user.permissions?.includes('exams.manage'))))));
-  const tenantName = user.tenant?.nome || (role === 'superadmin' ? 'Administração da plataforma' : 'Instituição não vinculada');
-  const tenantLogo = user.role !== 'superadmin' ? user.tenant?.logoUrl : '';
+  const tenantName = user.tenant?.nome || (['superadmin', 'platform_staff'].includes(role) ? 'Equipe Facilita' : 'Instituição não vinculada');
+  const tenantLogo = !['superadmin', 'platform_staff'].includes(role) ? user.tenant?.logoUrl : '';
 
   return (
     <>

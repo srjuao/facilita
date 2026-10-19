@@ -7,7 +7,7 @@ import './InstitutionWorkspace.css';
 
 type Staff = { id: string; nome: string; email: string; departmentId: string | null; permissions: string[]; disabledAt: string | null };
 type Department = { id: string; nome: string };
-const grants = [['students.manage', 'Consultar e cadastrar alunos'], ['notices.manage', 'Publicar e administrar avisos'], ['chat.create', 'Criar conversas e grupos'], ['finance.manage', 'Gerenciar mensalidades, cobranças e baixas manuais']];
+const grants = [['students.manage', 'Consultar e cadastrar alunos'], ['notices.manage', 'Publicar e administrar avisos'], ['chat.create', 'Criar conversas e grupos'], ['finance.manage', 'Gerenciar mensalidades, cobranças e baixas manuais'], ['support.manage', 'Abrir e acompanhar chamados com o Facilita']];
 const blank = { nome: '', email: '', password: '', departmentId: '', permissions: [] as string[] };
 export function StaffAccounts() {
   const { user } = useAuth();

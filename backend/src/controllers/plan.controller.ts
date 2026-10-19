@@ -45,9 +45,9 @@ export async function updatePlanStatus(req: AuthRequest, res: Response) {
   } catch (error) { return fail(res, error); }
 }
 export async function getSubscriptions(req: AuthRequest, res: Response) {
-  if (!admin(req, res)) return;
   try {
-    await currentAdmin(prisma, req);
+    const account = req.user?.id ? await prisma.user.findUnique({ where: { id: req.user.id }, select: { role: true, permissions: true, tenantId: true, disabledAt: true } }) : null;
+    if (!account || account.disabledAt || account.role !== 'superadmin' && !(account.role === 'platform_staff' && !account.tenantId && account.permissions.includes('platform.finance'))) return res.status(403).json({ error: 'Acesso exclusivo do financeiro da plataforma.' });
     const [tenants, counts] = await Promise.all([
       prisma.tenant.findMany({ include: includeSubscription, orderBy: { nome: 'asc' } }),
       prisma.user.groupBy({ by: ['tenantId'], where: { role: 'aluno', disabledAt: null, tenantId: { not: null } }, _count: { id: true } }),

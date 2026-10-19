@@ -6,6 +6,11 @@ import { LeadRateLimiter, validateLeadUpdate, validatePublicLead } from './lead-
 const prisma = new PrismaClient();
 const limiter = new LeadRateLimiter();
 const acknowledgment = { message: 'Recebemos seu contato. Nossa equipe retornará em breve.' };
+async function canManageLeads(req: AuthRequest) {
+  if (!req.user?.id) return false;
+  const account = await prisma.user.findUnique({ where: { id: req.user.id }, select: { role: true, permissions: true, tenantId: true, disabledAt: true } });
+  return !!account && !account.disabledAt && (account.role === 'superadmin' || account.role === 'platform_staff' && !account.tenantId && account.permissions.includes('platform.sales'));
+}
 
 export const createPublicLead = async (req: Request, res: Response) => {
   // This app is behind a proxy, so the shared socket IP budget is intentionally generous.
@@ -24,7 +29,7 @@ export const createPublicLead = async (req: Request, res: Response) => {
 };
 
 export const getLeads = async (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'superadmin') return res.status(403).json({ error: 'Acesso exclusivo do superadmin.' });
+  if (!await canManageLeads(req)) return res.status(403).json({ error: 'Acesso exclusivo do comercial da plataforma.' });
   const query = req.query ?? {};
   if ((query.q !== undefined && typeof query.q !== 'string') || (query.cursor !== undefined && typeof query.cursor !== 'string')) return res.status(400).json({ error: 'Busca ou página inválida.' });
   const q = typeof query.q === 'string' ? query.q.trim() : '';
@@ -44,7 +49,7 @@ export const getLeads = async (req: AuthRequest, res: Response) => {
 };
 
 export const updateLead = async (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'superadmin') return res.status(403).json({ error: 'Acesso exclusivo do superadmin.' });
+  if (!await canManageLeads(req)) return res.status(403).json({ error: 'Acesso exclusivo do comercial da plataforma.' });
   if (!req.params.id || req.params.id.length > 128) return res.status(400).json({ error: 'Lead inválido.' });
   const validated = validateLeadUpdate(req.body);
   if ('error' in validated) return res.status(400).json({ error: validated.error });

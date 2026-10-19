@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
+
+const auditDb = new PrismaClient();
 
 const getJwtSecret = (): string => {
   const secret = process.env.JWT_SECRET;
@@ -21,9 +24,9 @@ export interface AuthRequest extends Request {
   };
 }
 
-export type UserRole = 'superadmin' | 'coord' | 'professor' | 'aluno' | 'staff';
+export type UserRole = 'superadmin' | 'platform_staff' | 'coord' | 'professor' | 'aluno' | 'staff';
 
-const USER_ROLES: UserRole[] = ['superadmin', 'coord', 'professor', 'aluno', 'staff'];
+const USER_ROLES: UserRole[] = ['superadmin', 'platform_staff', 'coord', 'professor', 'aluno', 'staff'];
 
 export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
@@ -49,6 +52,13 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
       return res.status(403).json({ error: 'Token sem permissões válidas.' });
     }
     req.user = payload;
+    if (['superadmin', 'platform_staff'].includes(payload.role) && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+      res.once('finish', () => {
+        void auditDb.user.findUnique({ where: { id: payload.id }, select: { nome: true, role: true } }).then(account => {
+          if (account) return auditDb.platformAuditLog.create({ data: { actorId: payload.id, actorName: account.nome, actorRole: account.role, method: req.method, path: req.originalUrl.split('?')[0].slice(0, 500), status: res.statusCode } });
+        }).catch(() => { /* Auditing must not expose request content or break the response. */ });
+      });
+    }
     next();
   });
 };

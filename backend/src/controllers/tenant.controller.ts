@@ -234,7 +234,7 @@ export const createTenantUser = async (req: AuthRequest, res: Response) => {
     if (!tenant.ativo) return res.status(409).json({ error: 'Reative a faculdade antes de vincular usuários.' });
     const normalizedEmail = email.trim().toLowerCase();
     const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-    if (existingUser?.role === 'superadmin') return res.status(409).json({ error: 'Contas globais de superadmin não podem ser vinculadas como usuários da instituição.' });
+    if (existingUser && ['superadmin', 'platform_staff'].includes(existingUser.role)) return res.status(409).json({ error: 'Contas da equipe Facilita não podem ser vinculadas como usuários da instituição.' });
     if (existingUser?.tenantId && existingUser.tenantId !== tenant.id) {
       const currentTenant = await prisma.tenant.findUnique({ where: { id: existingUser.tenantId }, select: { nome: true } });
       return res.status(409).json({ error: `Esta conta já está vinculada à unidade ${currentTenant?.nome || 'existente'}.` });
@@ -246,7 +246,7 @@ export const createTenantUser = async (req: AuthRequest, res: Response) => {
     const user = await prisma.$transaction(async tx => {
       await lockTenant(tx, tenant.id);
       const latest = await tx.user.findUnique({ where: { email: normalizedEmail } });
-      if (latest && (latest.role === 'superadmin' || latest.tenantId && latest.tenantId !== tenant.id)) throw new PlanError(409, 'Esta conta não pode ser vinculada a esta instituição.');
+      if (latest && (['superadmin', 'platform_staff'].includes(latest.role) || latest.tenantId && latest.tenantId !== tenant.id)) throw new PlanError(409, 'Esta conta não pode ser vinculada a esta instituição.');
       if (latest?.studentId) {
         const student = await tx.student.findUnique({ where: { id: latest.studentId }, include: { course: true } });
         if (!student || student.course.tenantId !== tenant.id) throw new PlanError(409, 'Este aluno possui vínculo acadêmico em outra instituição.');

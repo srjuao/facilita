@@ -11,7 +11,7 @@ const publicPlan = { select: { id: true, nome: true, videoAulas: true, provas: t
 export const updateProfile = createUpdateProfileHandler({
   find: id => prisma.user.findUnique({ where: { id }, select: { id: true, role: true } }),
   replace: async (id, profile) => {
-    const result = await prisma.user.updateMany({ where: { id, role: 'superadmin' }, data: profile });
+    const result = await prisma.user.updateMany({ where: { id, disabledAt: null, OR: [{ role: 'superadmin' }, { role: 'platform_staff', tenantId: null }] }, data: profile });
     return result.count === 1;
   }
 });
@@ -19,7 +19,7 @@ export const updateProfile = createUpdateProfileHandler({
 export const changePassword = createChangePasswordHandler({
   find: id => prisma.user.findUnique({ where: { id }, select: { id: true, role: true, password: true } }),
   replace: async (id, previousHash, newHash) => {
-    const result = await prisma.user.updateMany({ where: { id, role: 'superadmin', password: previousHash }, data: { password: newHash } });
+    const result = await prisma.user.updateMany({ where: { id, disabledAt: null, password: previousHash, OR: [{ role: 'superadmin' }, { role: 'platform_staff', tenantId: null }] }, data: { password: newHash } });
     return result.count === 1;
   }
 });
@@ -60,6 +60,11 @@ export const login = async (req: Request, res: Response) => {
       courseId: user.courseId,
       studentId: user.studentId
     });
+
+    if (['superadmin', 'platform_staff'].includes(user.role)) {
+      try { await prisma.platformAuditLog.create({ data: { actorId: user.id, actorName: user.nome, actorRole: user.role, method: 'LOGIN', path: '/api/auth/login', status: 200 } }); }
+      catch { /* A temporary audit failure must not invalidate a correct login. */ }
+    }
 
     return res.json({
       token,
